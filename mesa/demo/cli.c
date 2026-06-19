@@ -49,6 +49,10 @@ mesa_port_no_t uport2iport(mesa_port_no_t uport)
 }
 
 static cli_cmd_t *cli_cmd_list;
+/* Separate command list used by the mepa_apps MACsec PHY demo (ported from
+ * mepa_demo). The registrations link here; routing CLI input to this list
+ * needs mepa_demo's cli mode-dispatch, which is not ported yet. */
+static cli_cmd_t *cli_macsec_cmd_list;
 
 static void cli_cmd_help(cli_req_t *req)
 {
@@ -144,6 +148,20 @@ int cli_parm_u32(cli_req_t *req, uint32_t *val, uint32_t min, uint32_t max)
     char    *end;
 
     n = strtoul(req->cmd, &end, 0);
+    if (*end != '\0' || n < min || n > max)
+        return 1;
+
+    *val = n;
+    return 0;
+}
+
+/* 64-bit parameter parser (ported from mepa_demo for the PHY demos). */
+int cli_parm_u64(cli_req_t *req, uint64_t *val, uint64_t min, uint64_t max)
+{
+    uint64_t n;
+    char    *end;
+
+    n = strtoull(req->cmd, &end, 0);
     if (*end != '\0' || n < min || n > max)
         return 1;
 
@@ -406,6 +424,17 @@ void mscc_appl_cli_cmd_reg(cli_cmd_t *cmd)
     }
 }
 
+/* Register a MACsec PHY-demo CLI command (ported from mepa_demo). */
+void mscc_appl_macsec_cli_cmd_reg(cli_cmd_t *cmd)
+{
+    if (!cmd->func && !cmd->func2) {
+        cli_printf("Missing command function: %s\n", cmd->syntax);
+        return;
+    }
+    cmd->next = cli_macsec_cmd_list;
+    cli_macsec_cmd_list = cmd;
+}
+
 /* Register CLI parameter */
 void mscc_appl_cli_parm_reg(cli_parm_t *parm)
 {
@@ -520,7 +549,8 @@ char *cli_mac_txt(const uint8_t *mac, char *buf)
 }
 
 /* Build array of command/syntax words */
-static void cli_build_words(char *str, int *count, char **words, mesa_bool_t lower)
+/* Exported (was static) so the mepa_apps PHY demos can reuse it. */
+void cli_build_words(char *str, int *count, char **words, mesa_bool_t lower)
 {
     int   i, j, len;
     char *p;

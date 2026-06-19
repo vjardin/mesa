@@ -79,10 +79,35 @@ endif()
 
 include_directories(.)
 
+# MEPA PHY-demo application layer (ported from sw-mepa/mepa_demo/mepa_apps)
+file(GLOB MEPA_APP_SRC "${CMAKE_CURRENT_SOURCE_DIR}/mepa_apps/*.c")
+# The following PHY demos do not yet build against mesa and are excluded until
+# their upstream dependency lands. Re-add each once unblocked:
+#   - phy_loopback / phy_warmstart_demo / phy_xconnect_demo / phy_kr_aneg_demo:
+#     need the json_rpc_*_phy25g_* bindings + phy25g_phy_state_t, which require
+#     upgrading mesa/scripts/ag2.rb to the newer generator that understands the
+#     LAN80xx headers (mesa's ag2.rb crashes on them).
+#   - phy_ts_demo: needs the lan80xx_phy_ts_* / LAN80XX_PTP_* APIs from a newer
+#     mepa import than mesa currently vendors.
+#   - phy_port_config: needs MEBA_ENTRY_PHY_SET (a sw-mepa board-configs symbol).
+foreach(_skip phy_loopback phy_warmstart_demo phy_xconnect_demo phy_kr_aneg_demo
+              phy_ts_demo phy_port_config)
+    list(REMOVE_ITEM MEPA_APP_SRC "${CMAKE_CURRENT_SOURCE_DIR}/mepa_apps/${_skip}.c")
+endforeach()
+
 add_library(mesa_demo_lib STATIC trace.c cli.c port.c mac.c vlan.c packet.c ip.c
                                  debug.c symreg.c test.c spi.c udmabuf.c uio.c ${MESA_RPC} json_rpc.c
-                                 example.c kr.c intr.c)
+                                 example.c kr.c intr.c
+                                 ${MEPA_APP_SRC})
 target_include_directories(mesa_demo_lib PUBLIC ${CMAKE_BINARY_DIR}/mesa-ag/)
+# include paths required by the mepa_apps PHY demos
+target_include_directories(mesa_demo_lib PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/mepa_apps
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../mepa/common/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../mepa/vtss/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../mepa/microchip/lan80xx/include/microchip
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../mepa/microchip/lan80xx/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../mepa/microchip/lan8814/include)
 
 file(GLOB_RECURSE EXAMPLE_SRC
      LIST_DIRECTORIES false

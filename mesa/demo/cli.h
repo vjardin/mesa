@@ -58,6 +58,7 @@ typedef struct cli_cmd_t {
 } cli_cmd_t;
 
 void mscc_appl_cli_cmd_reg(cli_cmd_t *cmd);
+void mscc_appl_macsec_cli_cmd_reg(cli_cmd_t *cmd);
 
 #define CLI_PARM_FLAG_NONE   0x00000000 /* No flags */
 #define CLI_PARM_FLAG_NO_TXT 0x00000001 /* Suppress identification text */
@@ -87,6 +88,8 @@ void           cli_table_header(const char *txt);
 int            cli_parm_u8(cli_req_t *req, uint8_t *val, uint32_t min, uint32_t max);
 int            cli_parm_u16(cli_req_t *req, uint16_t *val, uint32_t min, uint32_t max);
 int            cli_parm_u32(cli_req_t *req, uint32_t *val, uint32_t min, uint32_t max);
+int            cli_parm_u64(cli_req_t *req, uint64_t *val, uint64_t min, uint64_t max);
+void           cli_build_words(char *str, int *count, char **words, mesa_bool_t lower);
 const char    *cli_parse_find(const char *cmd, const char *stx);
 int cli_parse_list(const char *buf, mesa_bool_t *list, uint32_t min, uint32_t max, mesa_bool_t def);
 int cli_parse_values(const char *buf,

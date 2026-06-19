@@ -906,6 +906,24 @@ static void init_modules(mscc_appl_init_t *init)
     mscc_appl_spi_init(init);
     mscc_appl_intr_init(init);
     mscc_appl_udmabuf_init(init);
+
+    /* MEPA PHY-demo application layer (mepa_apps) */
+    mscc_appl_phy_init(init);
+    mscc_appl_kat_demo(init);
+    mscc_appl_phy_synce(init);
+    mepa_demo_appl_macsec_demo(init);
+    mepa_demo_appl_gpio_lp_demo(init);
+    mscc_appl_phy_loopback_init(init);
+    mscc_appl_phy_xconnect(init);
+    mscc_appl_phy_diagnostics_demo(init);
+    mscc_appl_phy_restart(init);
+    mscc_appl_phy_kr_init(init);
+    mepa_demo_appl_ts_demo(init);
+    mepa_demo_appl_macsec_rollover_demo(init);
+#ifdef MEPA_HAS_LAN80XX
+    mscc_appl_m25gdiag_demo(init);
+    mscc_appl_mcu_fw_init(init);
+#endif
 }
 
 typedef struct {
