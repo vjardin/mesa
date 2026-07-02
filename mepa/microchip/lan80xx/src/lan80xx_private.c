@@ -6558,6 +6558,22 @@ static mepa_rc lan80xx_MB_SetFlag(const mepa_device_t *dev, uint32_t u32SetMask)
     return rc;
 }
 
+/* Host-interrupt state for the mailbox protocol: from the registered
+ * INTR_A/B GPIO callback when one is wired, else by polling the SPI-readable
+ * mailbox flag register -- so the mailbox and DFU also work on boards where
+ * no INTR_A/B pin is routed to the host. */
+static uint8_t lan80xx_mb_host_intr(const mepa_device_t *dev, phy25g_phy_state_t *base_data, mepa_port_no_t port_no)
+{
+    phy25g_phy_state_t *data = (phy25g_phy_state_t *)dev->data;
+    uint32_t u32Val = 0;
+
+    if (base_data->ft_gpio_read != NULL) {
+        return base_data->ft_gpio_read(dev);
+    }
+    LAN80XX_CSR_RD(dev, port_no, LAN80XX_IOREG(MMD_ID_MCU_MAILBOX, 1, MAILBOX_FLAG_REGISTER), &u32Val);
+    return (u32Val & MAILBOX_HOST_INTR_MASK) ? 1 : 0;
+}
+
 mepa_rc lan80xx_MB_SendRequest(const mepa_device_t *dev, uint8_t *au8CmdPkt, uint16_t u16DataLen)
 {
     mepa_rc rc = MEPA_RC_OK;
@@ -6596,11 +6612,7 @@ mepa_rc lan80xx_MB_SendRequest(const mepa_device_t *dev, uint8_t *au8CmdPkt, uin
         u16DataLen -= SPI_VAL_LEN;
     }
     T_D(MEPA_TRACE_GRP_GEN, "Pkt written, checking MCU busy status...\n");
-    uint8_t u8McuInterrupt = 1;
-
-    if (base_data->ft_gpio_read) {
-        u8McuInterrupt = base_data->ft_gpio_read(dev);
-    }
+    uint8_t u8McuInterrupt = lan80xx_mb_host_intr(dev, base_data, port_no);
     uint32_t u32Val = 0;
     if (1 == u8McuInterrupt) {
         /*
@@ -6662,9 +6674,7 @@ mepa_rc lan80xx_MB_ReadResponse(const mepa_device_t *dev, uint8_t *u8ResponsePkt
 
     T_D (MEPA_TRACE_GRP_GEN, "Waiting for HOST interrupt...");
     while (1) {
-        if (base_data->ft_gpio_read) {
-            u8McuInterrupt = base_data->ft_gpio_read(dev);
-        }
+        u8McuInterrupt = lan80xx_mb_host_intr(dev, base_data, port_no);
         /*
          * If interrupt is set, then make sure HOST interrupt is set before reading response
          */
@@ -7123,6 +7133,14 @@ mepa_rc lan80xx_fw_update_priv(mepa_device_t *dev)
     if (rc != MEPA_RC_OK) {
         T_E(MEPA_TRACE_GRP_GEN, "mailbox init failed\n");
         return rc;
+    }
+    /* If no INTR_A/B pin is wired, the waits below fall back to reading the
+     * SPI-visible mailbox flag register (assume-asserted + flag check), the
+     * same fallback used by MB_SendRequest/MB_ReadResponse via
+     * lan80xx_mb_host_intr(). Do NOT abort DFU when ft_gpio_read is
+     * unregistered. */
+    if (base_data->ft_gpio_read == NULL) {
+        T_IM(data->port_no, "No INTR_A/B callback; using SPI-flag polling for DFU\n");
     }
     T_IM(data->port_no,"Waiting for First packet interrupt...\n");
     // Wait for DFU first packet Interrupt
