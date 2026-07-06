@@ -97,8 +97,22 @@ file(GLOB_RECURSE MEPA_APP_SRC
 
 add_library(mesa_demo_lib STATIC trace.c cli.c port.c mac.c vlan.c packet.c ip.c
                                  debug.c symreg.c test.c spi.c udmabuf.c uio.c ${MESA_RPC} json_rpc.c
-                                 example.c kr.c intr.c ${MEPA_APP_SRC})
+                                 example.c kr.c intr.c phy_only.c ${MEPA_APP_SRC})
 target_include_directories(mesa_demo_lib PUBLIC ${CMAKE_BINARY_DIR}/mesa-ag/)
+
+# Optional: the external mepa_spidev_proxy dev package
+find_package(mepa_spidev_proxy CONFIG QUIET)
+if (mepa_spidev_proxy_FOUND)
+    target_link_libraries(mesa_demo_lib PRIVATE mepa_spidev_proxy::spiproxy)
+    target_compile_definitions(mesa_demo_lib PRIVATE MEPA_HAS_SPIPROXY)
+    message(STATUS "mepa_spidev_proxy found: PHY-only '-P proxy:<sock>' mode enabled")
+else()
+    message(STATUS "mepa_spidev_proxy not found: PHY-only '-P proxy:<sock>' mode disabled")
+endif()
+
+if (app_void)
+    target_compile_definitions(mesa_demo_lib PRIVATE MEPA_HAS_LAN80XX)
+endif()
 
 file(GLOB_RECURSE EXAMPLE_SRC
      LIST_DIRECTORIES false
@@ -289,6 +303,14 @@ APP_TARGET(NAME app_vsc7558TSN         MESA vsc7558TSN         MEBA meba_sparx5)
 APP_TARGET(NAME app_vsc7558MACSEC      MESA vsc7558MSEC        MEBA meba_sparx5_macsec)
 APP_TARGET(NAME app_vsc7556            MESA vsc7556            MEBA meba_sparx5)
 APP_TARGET(NAME app_lan9698RED         MESA lan9698RED         MEBA meba_sparx5)
+APP_TARGET(NAME app_void               MESA lan966x            MEBA meba_void)
+set_target_properties(app_void PROPERTIES OUTPUT_NAME "mesa-demo-void")
+if (CMAKE_EXE_LINKER_FLAGS MATCHES "-static")
+    get_target_property(_void_libs app_void LINK_LIBRARIES)
+    list(REMOVE_ITEM _void_libs lan966x)
+    list(APPEND _void_libs lan966x_static)
+    set_target_properties(app_void PROPERTIES LINK_LIBRARIES "${_void_libs}")
+endif()
 APP_TARGET(NAME app_lan966x            MESA lan966x            MEBA meba_lan966x)
 APP_TARGET(NAME app_lan966x_lm         MESA lan966x_lm         MEBA meba_lan966x)
 APP_TARGET(NAME app_lan969x            MESA lan969x            MEBA meba_sparx5)
