@@ -3919,7 +3919,11 @@ mepa_rc lan80xx_rx_eye_scan_conf_set_priv (const mepa_device_t          *dev,
             cnt++;
         }
         if (!(value & LAN80XX_M_LINE_PMA_8BIT_LANE_DD_LN_ISCAN_DONE)) {
-            T_E(MEPA_TRACE_GRP_GEN, "Timed out after %d ms - bailing out", cnt);
+            T_E(MEPA_TRACE_GRP_GEN,
+                "port %u %s fast ISCAN_DONE poll timed out after %d ms "
+                "(PMA_8BIT_LANE_DD=0x%x) - bailing out (no signal/clock on "
+                "the scanned lane?)",
+                port_no, is_line ? "LINE" : "HOST", cnt, value);
             MEPA_RC(lan80xx_rx_eye_scan_disable(dev, port_no, is_line));
             return MEPA_RC_ERROR;
         }
@@ -3946,7 +3950,11 @@ mepa_rc lan80xx_rx_eye_scan_conf_set_priv (const mepa_device_t          *dev,
             cnt++;
         }
         if (!(value & LAN80XX_M_LINE_PMA_8BIT_LANE_DD_LN_ISCAN_DONE)) {
-            T_E(MEPA_TRACE_GRP_GEN, "Timed out after %d ms - bailing out", cnt);
+            T_E(MEPA_TRACE_GRP_GEN,
+                "port %u %s normal ISCAN_DONE poll timed out after %d ms "
+                "(PMA_8BIT_LANE_DD=0x%x) - bailing out (no signal/clock on "
+                "the scanned lane?)",
+                port_no, is_line ? "LINE" : "HOST", cnt, value);
             MEPA_RC(lan80xx_rx_eye_scan_disable(dev, port_no, is_line));
             return MEPA_RC_ERROR;
         }
