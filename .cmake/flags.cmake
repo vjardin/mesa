@@ -12,6 +12,9 @@ string (REPLACE " -" ";-" EXE_LINKER_FLAGS      "${CMAKE_EXE_LINKER_FLAGS}")
 
 LIST(APPEND C_FLAGS   "-Wall -Werror -Wno-unknown-pragmas -Wno-array-bounds -Wno-stringop-overflow -Wno-nonnull -fasynchronous-unwind-tables -std=c11 -D_POSIX_C_SOURCE=200809L -D_BSD_SOURCE -D_DEFAULT_SOURCE -ldl")
 
+LIST(APPEND C_FLAGS   "-Wno-error=format-security")
+LIST(APPEND C_FLAGS   "-Wno-error=unused-result")
+
 # This is always set by buildroot - not sure why
 LIST(REMOVE_ITEM C_FLAGS   "-Os")
 LIST(REMOVE_ITEM C_FLAGS   "-DNDEBUG")
