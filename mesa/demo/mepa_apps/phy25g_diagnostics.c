@@ -495,12 +495,18 @@ static void cli_cmd_eye_diag(cli_req_t *req)
                                            req->port_no, mreq->is_line, mreq->scan)) !=
         MEPA_RC_OK) {
         T_E("\n Error in Configuring Eye Diagram on port : %d \n", (req->port_no + 1));
+        cli_printf("Error: eye-scan conf failed on port %u (%s side, rc %d): "
+                   "no signal/clock on the scanned lane? See trace log.\n",
+                   (req->port_no + 1), mreq->is_line ? "line" : "host", rc);
         return;
     }
     if ((rc = lan80xx_rx_eye_scan_status_get(meba_phy_diag_instance->phy_devices[req->port_no],
                                              req->port_no, mreq->scan, &status)) != MEPA_RC_OK) {
         T_E("\n Error in Getting the Eye Height and Eye Diagram on port : %d \n",
             (req->port_no + 1));
+        cli_printf("Error: eye-scan status read failed on port %u (%s side, rc %d)"
+                   " -- see trace log.\n",
+                   (req->port_no + 1), mreq->is_line ? "line" : "host", rc);
         return;
     }
     if ((rc = lan80xx_phy_tx_rx_equalization_status_get(meba_phy_diag_instance
