@@ -27,7 +27,7 @@
     N
 
 #if defined(__GNUC__)
-#if __GNUC__ == 13
+#if __GNUC__ >= 13
 // Not sure when it is best to use __VA_OPT__(,) instead of ##__VA_ARGS__, but
 // we see that gcc 13 does not shallow the comma in the MACROs below.
 // But we cannot change to always __VA_OPT__(,) as this is not supported in
