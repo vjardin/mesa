@@ -1354,6 +1354,30 @@ static mesa_port_mux_mode_t lan966x_determine_mux_mode(meba_inst_t inst)
     return MESA_PORT_MUX_MODE_1;
 }
 
+static mesa_rc lan966x_phy_spi_read(meba_inst_t     inst,
+                                    mesa_port_no_t  port_no,
+                                    uint8_t         dev,
+                                    uint16_t        reg_num,
+                                    uint32_t *const data)
+{
+    if (inst->iface.spi_read == NULL) {
+        return MESA_RC_NOT_IMPLEMENTED;
+    }
+    return inst->iface.spi_read(port_no, dev, 0, reg_num, data);
+}
+
+static mesa_rc lan966x_phy_spi_write(meba_inst_t     inst,
+                                     mesa_port_no_t  port_no,
+                                     uint8_t         dev,
+                                     uint16_t        reg_num,
+                                     uint32_t *const data)
+{
+    if (inst->iface.spi_write == NULL) {
+        return MESA_RC_NOT_IMPLEMENTED;
+    }
+    return inst->iface.spi_write(port_no, dev, 0, reg_num, data);
+}
+
 meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *callouts)
 {
     meba_inst_t         inst;
@@ -1555,6 +1579,8 @@ meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *
     inst->api_synce = meba_synce_get();
     inst->api_tod = meba_tod_get();
     inst->api.meba_ptp_external_io_conf_get = lan966x_ptp_external_io_conf_get;
+    inst->api.meba_phy_spi_read = lan966x_phy_spi_read;
+    inst->api.meba_phy_spi_write = lan966x_phy_spi_write;
     inst->api_poe = meba_poe_get();
 
     return inst;
