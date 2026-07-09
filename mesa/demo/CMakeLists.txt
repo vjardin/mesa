@@ -4,6 +4,7 @@
 message(STATUS "CMAKE_TOOLCHAIN_FILE='${CMAKE_TOOLCHAIN_FILE}'")
 
 option(BUILD_MESA_APP_ALL "Build all defined mesa demo applications" OFF)
+option(MESA_PHY_ONLY "Build the demo PHY-only (no MESA switch library)" OFF)
 option(BUILD_MESA_IMG_ALL "Build all defined mesa demo firmware images" OFF)
 mark_as_advanced(BUILD_MESA_APP_ALL)
 
@@ -59,6 +60,7 @@ list(APPEND API_MEBA_CACHE_IN mepa/microchip/lan80xx/include/microchip/lan80xx_t
 list(APPEND API_MEBA_CACHE_IN mepa/microchip/lan80xx/src/lan80xx_ts_private.h)
 list(APPEND API_MEBA_CACHE_IN mepa/microchip/lan80xx/src/lan80xx_macsec_private.h)
 set(API_MESA_CACHE_AG_IN)
+if (NOT MESA_PHY_ONLY)
 list (APPEND API_MESA_CACHE_AG_IN mesa/include/microchip/ethernet/switch/api.h)
 list (APPEND API_MESA_CACHE_AG_IN mesa/include/microchip/ethernet/switch/api/afi.h)
 list (APPEND API_MESA_CACHE_AG_IN mesa/include/microchip/ethernet/switch/api/capability.h)
@@ -78,6 +80,7 @@ list (APPEND API_MESA_CACHE_AG_IN mesa/include/microchip/ethernet/switch/api/ts.
 list (APPEND API_MESA_CACHE_AG_IN mesa/include/microchip/ethernet/switch/api/tsn.h)
 list (APPEND API_MESA_CACHE_AG_IN mesa/include/microchip/ethernet/switch/api/types.h)
 list (APPEND API_MESA_CACHE_AG_IN mesa/include/microchip/ethernet/switch/api/vop.h)
+endif()
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mesa-ag/mesa-rpc.h ${CMAKE_CURRENT_BINARY_DIR}/mesa-ag/mesa-rpc.c
                    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../../mesa/scripts/ag2.rb -b ${CMAKE_CURRENT_SOURCE_DIR}/../.. -o ${CMAKE_CURRENT_BINARY_DIR}/mesa-ag ${API_MESA_CACHE_AG_IN} ${API_MEBA_CACHE_IN} ${API_ME_CACHE_IN}
                    DEPENDS mesa_cache
@@ -95,9 +98,15 @@ file(GLOB_RECURSE MEPA_APP_SRC
      #RELATIVE ""
      "${CMAKE_CURRENT_SOURCE_DIR}/mepa_apps/*.c")
 
+if (MESA_PHY_ONLY)
+add_library(mesa_demo_lib STATIC trace.c cli.c debug.c spi.c uio.c ${MESA_RPC} json_rpc.c
+                                 phy_only.c ${MEPA_APP_SRC})
+target_compile_definitions(mesa_demo_lib PUBLIC MESA_PHY_ONLY)
+else()
 add_library(mesa_demo_lib STATIC trace.c cli.c port.c mac.c vlan.c packet.c ip.c
                                  debug.c symreg.c test.c spi.c udmabuf.c uio.c ${MESA_RPC} json_rpc.c
                                  example.c kr.c intr.c phy_only.c ${MEPA_APP_SRC})
+endif()
 target_include_directories(mesa_demo_lib PUBLIC ${CMAKE_BINARY_DIR}/mesa-ag/)
 
 # Optional: the external mepa_spidev_proxy dev package
@@ -303,6 +312,16 @@ APP_TARGET(NAME app_vsc7558TSN         MESA vsc7558TSN         MEBA meba_sparx5)
 APP_TARGET(NAME app_vsc7558MACSEC      MESA vsc7558MSEC        MEBA meba_sparx5_macsec)
 APP_TARGET(NAME app_vsc7556            MESA vsc7556            MEBA meba_sparx5)
 APP_TARGET(NAME app_lan9698RED         MESA lan9698RED         MEBA meba_sparx5)
+if (MESA_PHY_ONLY)
+    option(app_void "Build the PHY-only MESA demo application" OFF)
+    add_executable(app_void main.c mesa_stubs.c)
+    target_compile_definitions(app_void PRIVATE VTSS_OPSYS_LINUX)
+    target_link_libraries(app_void mesa_demo_lib json-c meba_void_static chip_specific_api_stub)
+    set_target_properties(app_void PROPERTIES OUTPUT_NAME "mesa-demo-void")
+    if (NOT app_void)
+        set_target_properties(app_void PROPERTIES EXCLUDE_FROM_ALL TRUE)
+    endif()
+else()
 APP_TARGET(NAME app_void               MESA lan966x            MEBA meba_void)
 set_target_properties(app_void PROPERTIES OUTPUT_NAME "mesa-demo-void")
 if (CMAKE_EXE_LINKER_FLAGS MATCHES "-static")
@@ -310,6 +329,7 @@ if (CMAKE_EXE_LINKER_FLAGS MATCHES "-static")
     list(REMOVE_ITEM _void_libs lan966x)
     list(APPEND _void_libs lan966x_static)
     set_target_properties(app_void PROPERTIES LINK_LIBRARIES "${_void_libs}")
+endif()
 endif()
 APP_TARGET(NAME app_lan966x            MESA lan966x            MEBA meba_lan966x)
 APP_TARGET(NAME app_lan966x_lm         MESA lan966x_lm         MEBA meba_lan966x)
