@@ -283,13 +283,10 @@ static mepa_port_interface_t rgmii_id_convert(mepa_port_interface_t interface)
     }
 }
 
-void meba_phy_driver_init(meba_inst_t inst)
+// Wire the MEPA callouts and per-port contexts without probing: boards with
+// no fixed PHY population (application-created devices) use this alone.
+void meba_phy_callout_init(meba_inst_t inst)
 {
-    mepa_rc           rc;
-    mesa_port_no_t    port_no;
-    meba_port_entry_t entry;
-    mepa_device_t    *phy_dev;
-
     inst->phy_device_ctx = calloc(inst->phy_device_cnt, sizeof(mepa_callout_ctx_t));
     inst->mepa_callout.mmd_read = meba_mmd_read;
     inst->mepa_callout.mmd_read_inc = meba_mmd_read_inc;
@@ -304,6 +301,16 @@ void meba_phy_driver_init(meba_inst_t inst)
     inst->mepa_callout.mem_free = mem_free;
 
     MEPA_TRACE_FUNCTION = inst->iface.trace;
+}
+
+void meba_phy_driver_init(meba_inst_t inst)
+{
+    mepa_rc           rc;
+    mesa_port_no_t    port_no;
+    meba_port_entry_t entry;
+    mepa_device_t    *phy_dev;
+
+    meba_phy_callout_init(inst);
 
     memset(&entry, 0, sizeof(meba_port_entry_t));
     for (port_no = 0; port_no < inst->phy_device_cnt; port_no++) {
