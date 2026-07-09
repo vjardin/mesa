@@ -168,6 +168,7 @@ static void cli_cmd_dev_attach(cli_req_t *req)
 {
     mesa_port_conf_t conf;
     port_cli_req_t  *mreq = req->module_req;
+    mesa_rc          rc;
     mepa_device_t   *dev;
     dev = meba_phy_inst->phy_devices[req->port_no];
     if (mesa_port_conf_get(NULL, req->port_no, &conf) != MESA_RC_OK) {
@@ -177,14 +178,14 @@ static void cli_cmd_dev_attach(cli_req_t *req)
         req->rc = 0;
     }
     conf.if_type = mreq->interface;
-    if (mesa_port_conf_set(NULL, req->port_no, &conf) != MESA_RC_OK) {
+    if ((rc = mesa_port_conf_set(NULL, req->port_no, &conf)) != MESA_RC_OK) {
         req->rc = -1;
-        T_E("mesa_port_conf_set(%u) failed %d\n", req->port_no);
+        T_E("mesa_port_conf_set(%u) failed %d\n", req->port_no, rc);
     } else {
         req->rc = 0;
     }
-    if (mepa_if_set(dev, mreq->interface) != MESA_RC_OK) {
-        T_E("mepa_if_set(%u) failed %d\n", req->port_no);
+    if ((rc = mepa_if_set(dev, mreq->interface)) != MESA_RC_OK) {
+        T_E("mepa_if_set(%u) failed %d\n", req->port_no, rc);
     } else {
         req->rc = 0;
     }
