@@ -104,6 +104,7 @@ $struct_blacklist = [
     "phy25g_macsec_internal_conf_t",
 ]
 
+$methods_skipped = []
 $methods_blacklist = [
     "mesa_callout_trace_hex_dump",
     "mesa_callout_trace_printf",
@@ -1513,9 +1514,22 @@ $methods.each do |m, o|
         next if $methods_greylist.include? m
         next if $methods_blacklist.include? m
         next if m.to_s.end_with?("_priv")
+        aa = analyze_args o[:args]
+
+        # Skip methods with argument types unknown to this generation run
+        # instead of emitting uncompilable code.
+        unresolved = aa.reject{|a| skip_inst(a)}.select do |a|
+            t = (a[:type_base] == "mesa_bool_t" ? "mesa_bool_t" : type_resolve(a[:type_base])[:type])
+            t.nil? or t.to_s.empty?
+        end
+        if unresolved.size > 0
+            $c_src.puts "/* #{m}: skipped, unresolved type(s): #{unresolved.map{|a| a[:type_base]}.join(", ")} */"
+            $methods_skipped << m
+            next
+        end
+
         $c_src.puts "static mesa_rc mesa_rpc_#{m}(json_rpc_req_t *req) /* #{__LINE__} */"
         $c_src.puts "{"
-        aa = analyze_args o[:args]
 
         if m == "mesa_capability"
             $c_src.puts "    mesa_cap_t cap;"
@@ -1658,6 +1672,7 @@ $methods.each do |m, o|
     begin
         next if $methods_greylist.include? m
         next if $methods_blacklist.include? m
+        next if $methods_skipped.include? m
         next if m.to_s.end_with?("_priv")
         $c_src.puts "    { \"#{m}\", mesa_rpc_#{m} }, "
     rescue => err
