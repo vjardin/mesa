@@ -977,6 +977,9 @@ static void init_modules(mscc_appl_init_t *init)
         phy_only_init_modules(init); /* PHY-safe subset of the list below */
         return;
     }
+#ifdef MESA_PHY_ONLY
+    phy_only_init_modules(init);
+#else
     mscc_appl_port_init(init);
     mscc_appl_mac_init(init);
     mscc_appl_vlan_init(init);
@@ -1009,6 +1012,7 @@ static void init_modules(mscc_appl_init_t *init)
     mscc_appl_m25gdiag_demo(init);
     mscc_appl_mcu_fw_init(init);
 #endif
+#endif /* MESA_PHY_ONLY */
 }
 
 typedef struct {

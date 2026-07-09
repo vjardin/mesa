@@ -849,6 +849,7 @@ mesa_rc json_rpc_add_name_mesa_port_list_t(json_rpc_req_t   *req,
 
 /* - Unions -------------------------------------------------------- */
 
+#ifndef MESA_PHY_ONLY
 mesa_rc json_rpc_get2_mesa_ace_t(json_rpc_req_t *req, json_object *obj, mesa_ace_t *parm)
 {
     json_object *obj_value;
@@ -1398,6 +1399,8 @@ mesa_rc json_rpc_add2_mesa_qos_egress_map_t(json_rpc_req_t        *req,
 }
 
 /* Warm start application - Malibu 25G - Start ------------------------------------------- */
+#endif /* !MESA_PHY_ONLY */
+
 mesa_rc json_rpc_get2_phy25g_ts_engine_flow_conf_t(json_rpc_req_t               *req,
                                                    json_object                  *obj,
                                                    phy25g_ts_engine_flow_conf_t *parm)
@@ -2160,6 +2163,7 @@ mesa_rc json_rpc_add_name_phy25g_macsec_internal_conf_t(json_rpc_req_t          
 
 /* - Static method table ------------------------------------------- */
 
+#ifndef MESA_PHY_ONLY
 // Maximum 64 DSCPs and 4 DPLs
 #define DSCP_DPL_MAX (64 * 4)
 
@@ -2368,9 +2372,13 @@ static mesa_rc mesa_rpc_packet_tx_frame(json_rpc_req_t *req)
     return MESA_RC_OK;
 }
 
+#ifndef MESA_PHY_ONLY
 mesa_rc intr_ev_get(const char *name, uint32_t idx, uint32_t *cnt);
+#endif
 
 /* Update the internal timestamp table, from HW */
+#endif /* !MESA_PHY_ONLY */
+
 static void test_ts_phy_fifo_read(const mepa_port_no_t            port_no,
                                   const mepa_timestamp_t *const   fifo_ts,
                                   const mepa_ts_fifo_sig_t *const sig,
@@ -2385,6 +2393,7 @@ static void test_ts_phy_fifo_read(const mepa_port_no_t            port_no,
         fifo_ts->seconds.high, fifo_ts->seconds.low, fifo_ts->nanoseconds, fifo_ts->nanoseconds);
 }
 
+#ifndef MESA_PHY_ONLY
 static mesa_rc event_get(json_rpc_req_t *req)
 {
     const char *name;
@@ -2396,6 +2405,7 @@ static mesa_rc event_get(json_rpc_req_t *req)
     MESA_RC(json_rpc_add_uint32_t(req, req->result, &cnt));
     return MESA_RC_OK;
 }
+#endif /* !MESA_PHY_ONLY */
 
 static mesa_rc mesa_rpc_meba_phy_ts_fifo_read_install(json_rpc_req_t *req)
 {
@@ -2600,6 +2610,7 @@ mesa_rc json_rpc_add_mepa_secy_inst_count_t(json_rpc_req_t         *req,
     return MESA_RC_OK;
 }
 
+#ifndef MESA_PHY_ONLY
 static json_rpc_method_t json_rpc_static_table[] = {
     {"mesa_qos_dscp_dpl_conf_get",  mesa_rpc_mesa_qos_dscp_dpl_conf_get },
     {"mesa_qos_dscp_dpl_conf_set",  mesa_rpc_mesa_qos_dscp_dpl_conf_set },
@@ -2613,6 +2624,7 @@ static json_rpc_method_t json_rpc_static_table[] = {
     {"mesa_event_get",              event_get                           },
     {NULL,                          NULL                                }
 };
+#endif /* !MESA_PHY_ONLY */
 
 static json_rpc_method_t json_rpc_phy_static_table[] = {
     {"meba_phy_ts_fifo_read_install", mesa_rpc_meba_phy_ts_fifo_read_install},
@@ -2633,12 +2645,14 @@ static int find_and_call_method(const char *method_name, json_rpc_req_t *req)
             method->cb(req);
         }
     }
+#ifndef MESA_PHY_ONLY
     for (method = json_rpc_static_table; method->cb != NULL && !found; method++) {
         if (!strcmp(method->name, method_name)) {
             found = 1;
             method->cb(req);
         }
     }
+#endif
     for (method = json_rpc_phy_static_table; method->cb != NULL && !found; method++) {
         if (!strcmp(method->name, method_name)) {
             found = 1;
