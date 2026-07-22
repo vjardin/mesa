@@ -73,6 +73,11 @@ static int mepa_drv_create(const mepa_port_no_t port_no)
         T_E("Invalid port number from meba\n");
         return MESA_RC_ERROR;
     }
+    if (port_no >= (mepa_port_no_t)port_cnt) {
+        T_E("Invalid port_no %u (valid uport range: 1..%d)", port_no, port_cnt);
+        cli_printf("Error: invalid port_no (specify a valid uport 1..%d).\n", port_cnt);
+        return MESA_RC_ERROR;
+    }
 
     if (meba_phy_inst->phy_devices[port_no]) {
         T_E("Device Already existing on %d", port_no);
@@ -144,6 +149,10 @@ static int mepa_drv_create(const mepa_port_no_t port_no)
 static int mepa_drv_del(const mepa_port_no_t port_no)
 {
     cli_printf("\nDeleting dev port_no %u\n", port_no);
+    if (port_no >= (mepa_port_no_t)port_cnt) {
+        T_E("Invalid port_no %u (valid uport range: 1..%d)", port_no, port_cnt);
+        return MESA_RC_ERROR;
+    }
     if (meba_phy_inst->phy_devices[port_no]) {
         if (mepa_delete(meba_phy_inst->phy_devices[port_no]) != MEPA_RC_OK) {
             T_E("Unable to delete the mepa device %d", port_no);
