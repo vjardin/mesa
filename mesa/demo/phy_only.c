@@ -462,7 +462,13 @@ mesa_rc phy_only_spi_rw(mepa_port_no_t port_no, mesa_bool_t read,
     if (phy_only_trace_fp != NULL) {
         phy_only_trace_op(port_no, read, mmd, reg_num);
     }
-    ch_no = slot->base + slot->ports - 1 - port_no;
+    /* Direct port→slice mapping.  On boards where the LAN80xx package's
+     * slice ordering matches Linux port_no (LAN80xx port 0 = SPI-frame
+     * slice 0), the historical reversal (base + ports - 1 - port_no)
+     * addresses non-existent slices and every subsequent register access
+     * targets empty register space.  Users of a board with the opposite
+     * wiring convention should provide their own port→slice hook. */
+    ch_no = slot->base + port_no;
 #ifdef MEPA_HAS_SPIPROXY
     if (slot->proxy) {
         return phy_only_proxy_rw(slot, ch_no, read, mmd, reg_num, data);
