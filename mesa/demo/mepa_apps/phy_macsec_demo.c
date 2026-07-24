@@ -12,6 +12,7 @@
 #include "port.h"
 #include <mepa_apps/phy_macsec_demo.h>
 #include "phy_demo_apps.h"
+#include "phy_device_get.h"
 
 /**
  * \brief   : Enables MACsec Block for given ports
@@ -285,6 +286,7 @@ static void cli_cmd_secy_create(cli_req_t *req)
     mepa_rc               rc = MEPA_RC_ERROR;
     int  protect = 0, frame_val = 0, cipher_sel = 0, sectag_len = 0, es_bit = 0, scb_bit = 0;
     char input[3];
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if ((rc = mepa_dev_check(meba_macsec_instance, req->port_no)) != MEPA_RC_OK) {
         printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
@@ -400,6 +402,7 @@ static void cli_cmd_macsec_secy_del(cli_req_t *req)
     macsec_configuration *mreq = req->module_req;
     mepa_rc               rc = MEPA_RC_ERROR;
 
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if ((rc = mepa_dev_check(meba_macsec_instance, req->port_no)) != MEPA_RC_OK) {
         printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
@@ -437,6 +440,7 @@ static void cli_cmd_match_conf(cli_req_t *req)
     mepa_rc               rc;
     int                   match = 0;
     char                  input[3];
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if (!req->set) {
         T_E("\n Invalid Syntax\n");
         cli_printf(
@@ -530,6 +534,7 @@ static void cli_cmd_tx_sc_create(cli_req_t *req)
     macsec_port.service_id = 0;
     macsec_port.port_id = mreq->port_id;
 
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if ((rc = mepa_dev_check(meba_macsec_instance, req->port_no)) != MEPA_RC_OK) {
         printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
@@ -554,6 +559,7 @@ static void cli_cmd_macsec_tx_sc_del(cli_req_t *req)
     macsec_port.port_no = req->port_no;
     macsec_port.service_id = 0;
     macsec_port.port_id = mreq->port_id;
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if ((rc = mepa_dev_check(meba_macsec_instance, req->port_no)) != MEPA_RC_OK) {
         printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
@@ -577,6 +583,7 @@ static void cli_cmd_rx_sc_create(cli_req_t *req)
     mepa_macsec_secy_conf_t secy_conf_get;
     mepa_rc                 rc;
 
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if ((rc = mepa_dev_check(meba_macsec_instance, req->port_no)) != MEPA_RC_OK) {
         printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
@@ -615,6 +622,7 @@ static void cli_cmd_macsec_rx_sc_del(cli_req_t *req)
     mepa_macsec_secy_conf_t secy_conf_get;
     mepa_rc                 rc;
 
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if ((rc = mepa_dev_check(meba_macsec_instance, req->port_no)) != MEPA_RC_OK) {
         printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
@@ -712,6 +720,7 @@ static void cli_cmd_tx_sa_create(cli_req_t *req)
     mepa_macsec_secy_conf_t secy_conf_get;
     mepa_macsec_ssci_t      ssci;
 
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if (!req->set) {
         T_E("\n Invalid Syntax\n");
         cli_printf(
@@ -822,6 +831,7 @@ static void cli_cmd_rx_sa_create(cli_req_t *req)
     char                  filename[100];
     mepa_macsec_pkt_num_t next_pkt;
     mepa_macsec_ssci_t    ssci;
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if ((rc = mepa_dev_check(meba_macsec_instance, req->port_no)) != MEPA_RC_OK) {
         printf(" Dev is Not Created for the port : %d\n", (req->port_no + 1));
         return;
@@ -928,6 +938,7 @@ static void cli_cmd_macsec_tx_sa_del(cli_req_t *req)
 {
     mepa_rc               rc;
     macsec_configuration *mreq = req->module_req;
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if ((rc = mepa_dev_check(meba_macsec_instance, req->port_no)) != MEPA_RC_OK) {
         printf(" Dev is Not Created for the port : %d\n", (req->port_no + 1));
         return;
@@ -952,6 +963,7 @@ static void cli_cmd_macsec_rx_sa_del(cli_req_t *req)
 {
     mepa_rc               rc;
     macsec_configuration *mreq = req->module_req;
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if ((rc = mepa_dev_check(meba_macsec_instance, req->port_no)) != MEPA_RC_OK) {
         printf(" Dev is Not Created for the port : %d\n", (req->port_no + 1));
         return;
@@ -989,6 +1001,7 @@ static void cli_cmd_rx_sa_pn_update(cli_req_t *req)
     mepa_rc               rc;
     macsec_configuration *mreq = req->module_req;
     mepa_macsec_pkt_num_t next_pkt;
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if ((rc = mepa_dev_check(meba_macsec_instance, req->port_no)) != MEPA_RC_OK) {
         printf(" Dev is Not Created for the port : %d\n", (req->port_no + 1));
         return;
@@ -1058,6 +1071,7 @@ static void cli_cmd_macsec_secy_statistics(cli_req_t *req)
     mepa_rc               rc;
     macsec_configuration *mreq = req->module_req;
 
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if (!req->set) {
         T_E("\n Invalid Syntax\n");
         cli_printf("\n Syntax : statistics secy <port_no> port-id <port_id> [get|clear]\n");
@@ -1111,6 +1125,7 @@ static void cli_cmd_macsec_tx_sc_statistics(cli_req_t *req)
 {
     mepa_rc               rc;
     macsec_configuration *mreq = req->module_req;
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if (!req->set) {
         T_E("\n Invalid Syntax\n");
         cli_printf("\n Syntax : statistics tx_sc <port_no> port-id <port_id> [get|clear]\n");
@@ -1155,6 +1170,7 @@ static void cli_cmd_macsec_tx_sa_statistics(cli_req_t *req)
 {
     mepa_rc               rc;
     macsec_configuration *mreq = req->module_req;
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if (!req->set) {
         T_E("\n Invalid Syntax\n");
         cli_printf(
@@ -1199,6 +1215,7 @@ static void cli_cmd_macsec_rx_sc_statistics(cli_req_t *req)
 {
     mepa_rc               rc;
     macsec_configuration *mreq = req->module_req;
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if (!req->set) {
         T_E("\n Invalid Syntax\n");
         cli_printf(
@@ -1261,6 +1278,7 @@ static void cli_cmd_macsec_rx_sa_statistics(cli_req_t *req)
 {
     mepa_rc               rc;
     macsec_configuration *mreq = req->module_req;
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if (!req->set) {
         T_E("\n Invalid Syntax\n");
         cli_printf(
@@ -1324,6 +1342,7 @@ static void cli_cmd_macsec_mac_statistics(cli_req_t *req)
 {
     mepa_rc               rc;
     macsec_configuration *mreq = req->module_req;
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if (!req->set) {
         T_E("\n Invalid Syntax\n");
         cli_printf("\n Syntax : statistics mac [hmac|lmac] <port_no> [get|clear]\n");
@@ -1419,6 +1438,7 @@ static void cli_cmd_macsec_vlan_bypass(cli_req_t *req)
 {
     mepa_rc               rc;
     macsec_configuration *mreq = req->module_req;
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if (!req->set) {
         T_E("\n invalid Syntax\n");
         cli_printf("Syntax : vlan_bypass <port_no> port-id <port_id> [zero|one|two|three|four]\n");
@@ -1722,6 +1742,7 @@ static void cli_cmd_macsec_conf_get(cli_req_t *req)
     mepa_bool_t        conf = 0;
     mepa_macsec_ssci_t ssci;
     mepa_bool_t        active;
+    PHY_DEVICE_GUARD(meba_macsec_instance);
     if ((rc = mepa_dev_check(meba_macsec_instance, req->port_no)) != MEPA_RC_OK) {
         printf(" Dev is Not Created for the port : %d\n", (req->port_no + 1));
         return;

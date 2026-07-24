@@ -10,6 +10,7 @@
 #include "cli.h"
 #include "port.h"
 #include "phy_demo_apps.h"
+#include "phy_device_get.h"
 #include "mepa_driver.h"
 #include "lan80xx.h"
 #include "lan80xx_mcu.h"
@@ -133,7 +134,7 @@ static void cli_cmd_pkt_bist(cli_req_t *req)
         return;
     }
     keyword_parsed.prbs_mon_parsed = 0;
-    if (meba_phy_diag_instance->phy_devices[req->port_no] == NULL) {
+    if (phy_device_get(meba_phy_diag_instance, req->port_no) == NULL) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
     }
@@ -197,7 +198,7 @@ static void cli_cmd_prbs_status(cli_req_t *req)
     mepa_phy_prbs_generator_conf_t prbs_get;
     mepa_phy_prbs_monitor_conf_t   mon_get;
     phy25g_appl_diag_t            *mreq = req->module_req;
-    if (meba_phy_diag_instance->phy_devices[req->port_no] == NULL) {
+    if (phy_device_get(meba_phy_diag_instance, req->port_no) == NULL) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
     }
@@ -255,7 +256,7 @@ static void cli_cmd_prbs_set(cli_req_t *req)
         }
     }
 
-    if (meba_phy_diag_instance->phy_devices[req->port_no] == NULL) {
+    if (phy_device_get(meba_phy_diag_instance, req->port_no) == NULL) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
     }
@@ -289,8 +290,8 @@ static void cli_cmd_phy_state(cli_req_t *req)
     char           *mode_txt[] = {"PCS Retimer", "MAC Retimer"};
     char           *fec[] = {"None", "R-FEC", "RS-FEC", "R-FEC, RS-FEC"};
     char           *fec_enabled_port[] = {"None", "HOST", "LINE", "HOST-LINE"};
-    if (meba_phy_diag_instance->phy_devices[req->port_no] == NULL) {
-        cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
+    if (phy_device_get(meba_phy_diag_instance, req->port_no) == NULL) {
+        cli_printf(" Dev is Not Created for the port : %d\n", req->port_no + 1);
         return;
     }
     if ((rc = mepa_conf_get(meba_phy_diag_instance->phy_devices[req->port_no], &conf_get)) !=
@@ -380,7 +381,7 @@ static void cli_cmd_csr_wr(cli_req_t *req)
 {
     phy25g_appl_diag_t *mreq = req->module_req;
     mepa_rc             rc;
-    if (meba_phy_diag_instance->phy_devices[req->port_no] == NULL) {
+    if (phy_device_get(meba_phy_diag_instance, req->port_no) == NULL) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
     }
@@ -398,7 +399,7 @@ static void cli_cmd_csr_rd(cli_req_t *req)
     mepa_rc             rc;
     uint32_t            value = 0;
 
-    if (meba_phy_diag_instance->phy_devices[req->port_no] == NULL) {
+    if (phy_device_get(meba_phy_diag_instance, req->port_no) == NULL) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
     }
@@ -460,7 +461,7 @@ static void cli_cmd_tx_eqa(cli_req_t *req)
         T_E("\n Invalid Argument \n");
         return;
     }
-    if (meba_phy_diag_instance->phy_devices[req->port_no] == NULL) {
+    if (phy_device_get(meba_phy_diag_instance, req->port_no) == NULL) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
     }
@@ -489,7 +490,7 @@ static void cli_cmd_rx_eqa(cli_req_t *req)
         T_E("\n Invalid Argument \n");
         return;
     }
-    if (meba_phy_diag_instance->phy_devices[req->port_no] == NULL) {
+    if (phy_device_get(meba_phy_diag_instance, req->port_no) == NULL) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
     }
@@ -520,7 +521,7 @@ static void cli_cmd_eye_diag(cli_req_t *req)
         T_E("\n Invalid Argument \n");
         return;
     }
-    if (meba_phy_diag_instance->phy_devices[req->port_no] == NULL) {
+    if (phy_device_get(meba_phy_diag_instance, req->port_no) == NULL) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
     }

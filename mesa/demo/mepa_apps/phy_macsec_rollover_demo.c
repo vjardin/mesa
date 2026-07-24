@@ -12,6 +12,7 @@
 #include "port.h"
 #include "cli.h"
 #include "phy_demo_apps.h"
+#include "phy_device_get.h"
 #include "mepa_os_linux.h"
 #include <arpa/inet.h>
 
@@ -215,6 +216,7 @@ static void cli_cmd_macsec_rollover_demo(cli_req_t *req)
 
     uint8_t port = req->port_no + 1;
 
+    PHY_DEVICE_GUARD(meba_macsec_rollover_instance);
     if (rollover_direction_egress) {
         cli_printf("Configuring Egress Rollover on port : %d\n", port);
         if (rollover_egress_config_port_cnt == 1) {

@@ -12,6 +12,7 @@
 #include "port.h"
 #include "phy_port_config.h"
 #include "phy_demo_apps.h"
+#include "phy_device_get.h"
 #include "microchip/lan8814_cs.h"
 #include "lan80xx.h"
 
@@ -275,7 +276,7 @@ static void cli_cmd_fpp_set(cli_req_t *req)
 {
     mepa_rc         rc;
     demo_phy_info_t phy_family;
-    if (meba_phy_inst->phy_devices[req->port_no] == NULL) {
+    if (phy_device_get(meba_phy_inst, req->port_no) == NULL) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
     }
@@ -301,7 +302,7 @@ static void cli_cmd_fpp_get(cli_req_t *req)
     mepa_rc         rc;
     demo_phy_info_t phy_family;
     mepa_bool_t     val = 0;
-    if (meba_phy_inst->phy_devices[req->port_no] == NULL) {
+    if (phy_device_get(meba_phy_inst, req->port_no) == NULL) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
     }

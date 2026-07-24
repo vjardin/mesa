@@ -18,6 +18,7 @@
 #include "port.h"
 #include "mepa_driver.h"
 #include "phy_demo_apps.h"
+#include "phy_device_get.h"
 
 meba_inst_t meba_phy_instances;
 
@@ -258,6 +259,7 @@ static void cli_cmd_synce_configure(cli_req_t *req)
     struct mepa_device     *dev;
 
     // --- Device check ---
+    PHY_DEVICE_GUARD(meba_phy_instances);
     if (mepa_dev_check(meba_phy_instances, req->port_no) != MEPA_RC_OK) {
         T_E("Dev not created for port %d\n", req->port_no + 1);
         return;

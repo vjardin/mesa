@@ -15,6 +15,7 @@
 #include "vtss_phy_10g_api.h"
 #include "vtss_private.h"
 #include "phy_demo_apps.h"
+#include "phy_device_get.h"
 #include "mepa_driver.h"
 #include "lan80xx.h"
 
@@ -81,6 +82,7 @@ static void cli_cmd_xconnect_conf_get(cli_req_t *req)
     uint8_t                    max_port_cnt = 0;
     uint8_t                    min_port = 0;
 
+    PHY_DEVICE_GUARD(meba_xc_phy_instance);
     if ((rc = phy_family_detect(meba_xc_phy_instance, req->port_no, &phy_family)) != MEPA_RC_OK) {
         T_E("\n Error in Detecting PHY Family on Port %d\n", req->port_no);
         return;
@@ -135,6 +137,7 @@ static void cli_cmd_xconnect_force_failover(cli_req_t *req)
     demo_phy_info_t     phy_family;
     struct mepa_device *dev = meba_xc_phy_instance->phy_devices[req->port_no];
 
+    PHY_DEVICE_GUARD(meba_xc_phy_instance);
     if ((rc = phy_family_detect(meba_xc_phy_instance, req->port_no, &phy_family)) != MEPA_RC_OK) {
         T_E("\n Error in Detecting PHY Family on Port %d\n", req->port_no);
         return;
@@ -152,6 +155,7 @@ static void cli_cmd_xconnect_hostfailover_recovery(cli_req_t *req)
     demo_phy_info_t     phy_family;
     struct mepa_device *dev = meba_xc_phy_instance->phy_devices[req->port_no];
 
+    PHY_DEVICE_GUARD(meba_xc_phy_instance);
     if ((rc = phy_family_detect(meba_xc_phy_instance, req->port_no, &phy_family)) != MEPA_RC_OK) {
         T_E("\n Error in Detecting PHY Family on Port %d\n", req->port_no);
         return;
@@ -202,6 +206,7 @@ static void cli_cmd_xconnect_anylinetoanyhost(cli_req_t *req)
     vtss_phy_10g_auto_failover_conf_t conf = {0};
     uint8_t                           host_ch, line_ch;
 
+    PHY_DEVICE_GUARD(meba_xc_phy_instance);
     if ((rc = phy_family_detect(meba_xc_phy_instance, req->port_no, &phy_family)) != MEPA_RC_OK) {
         T_E("\n Error in Detecting PHY Family on Port %d\n", req->port_no);
         return;
@@ -286,6 +291,7 @@ static void cli_cmd_XconnectFailover(cli_req_t *req)
     char  port_xconnect_file[128];
     char *buffer;
 
+    PHY_DEVICE_GUARD(meba_xc_phy_instance);
     if (!req->set) {
         cli_printf("\n Syntax : Xconnect_failover <port_no> [-f] [filename]\n");
         T_E("\n Provide Port no and filename as arguments\n");
