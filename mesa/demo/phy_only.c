@@ -465,14 +465,7 @@ mesa_rc phy_only_spi_rw(mepa_port_no_t port_no, mesa_bool_t read,
         return MESA_RC_ERROR;
     }
     addr = ch_no << 21 | mmd << 16 | reg_num;
-    if (read) {
-        if (phy_only_xfer(slot, 1, addr, data) != MESA_RC_OK) {
-            return MESA_RC_ERROR;
-        }
-        addr = ch_no << 21 | PHY_ONLY_DEVICE_ID_MMD << 16 | PHY_ONLY_DEVICE_ID_REG;
-        return phy_only_xfer(slot, 1, addr, data);
-    }
-    return phy_only_xfer(slot, 0, addr, data);
+    return phy_only_xfer(slot, read, addr, data);
 }
 
 // Hardware-reset the LAN80xx package owning `port_no` by asking the SPI
