@@ -455,7 +455,8 @@ mesa_rc phy_only_spi_rw(mepa_port_no_t port_no, mesa_bool_t read,
     if (phy_only_trace_fp != NULL) {
         phy_only_trace_op(port_no, read, mmd, reg_num);
     }
-    ch_no = slot->base + slot->ports - 1 - port_no;
+    // Direct port to slice mapping.
+    ch_no = slot->base + port_no;
 #ifdef MEPA_HAS_SPIPROXY
     if (slot->proxy) {
         return phy_only_proxy_rw(slot, ch_no, read, mmd, reg_num, data);
