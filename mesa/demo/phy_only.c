@@ -331,20 +331,23 @@ mesa_rc phy_only_slots_open(void)
     return MESA_RC_OK;
 }
 
-// One SPI transfer in the spi.c frame format: 23-bit address
-// (bit 23 = write) + 32-bit data; reads append the slot's padding bytes.
+// SPI transfer in the spi.c frame format: 23-bit address (bit 23 = write) +
+// 32-bit data.
+//
+// LAN80xx SPI is one-transaction-delayed: a read's response comes out at
+// the start of the *next* transaction's data window, not within the same
+// transaction.  A logical read is therefore two SPI transactions on the
+// same fd — a prime (discarded rx) followed by a capture (rx[3..6] carries
+// the prime's response).  Using two separate SPI_IOC_MESSAGE(1) ioctls
+// rather than one SPI_IOC_MESSAGE(2) with cs_change=1 avoids SPI-controller
+// implementations that don't honor cs_change tightly enough for the chip's
+// thd;ssn timing (mirrors the mepa-spidev-proxy read path).
+// Writes stay as a single 7-byte transaction (chip returns no data on writes).
 static mesa_rc phy_only_xfer(phy_only_slot_t *slot, mesa_bool_t read,
                              uint32_t addr, uint32_t *const data)
 {
-    uint8_t tx[PHY_ONLY_SPI_BYTES + PHY_ONLY_SPI_PAD_MAX];
-    uint8_t rx[sizeof(tx)] = { 0 };
-    struct spi_ioc_transfer tr = {
-        .tx_buf = (unsigned long)tx,
-        .rx_buf = (unsigned long)rx,
-        .len = PHY_ONLY_SPI_BYTES + (read ? slot->pad : 0),
-        .speed_hz = slot->freq,
-        .bits_per_word = 8,
-    };
+    uint8_t tx[PHY_ONLY_SPI_BYTES];
+    uint8_t rx[PHY_ONLY_SPI_BYTES] = { 0 };
 
     memset(tx, 0xff, sizeof(tx));
     tx[0] = (uint8_t)((read ? 0 : 0x80) | ((addr >> 16) & 0x7f));
@@ -356,11 +359,33 @@ static mesa_rc phy_only_xfer(phy_only_slot_t *slot, mesa_bool_t read,
         tx[5] = (uint8_t)(*data >> 8);
         tx[6] = (uint8_t)(*data >> 0);
     }
-    if (ioctl(slot->fd, SPI_IOC_MESSAGE(1), &tr) < 1) {
-        return MESA_RC_ERROR;
-    }
+
+    struct spi_ioc_transfer tr = {
+        .tx_buf = (unsigned long)tx,
+        .rx_buf = (unsigned long)rx,
+        .len = PHY_ONLY_SPI_BYTES,
+        .speed_hz = slot->freq,
+        .bits_per_word = 8,
+    };
+
     if (read) {
-        *data = (rx[3] << 24) | (rx[4] << 16) | (rx[5] << 8) | rx[6];
+        /* Prime: send command, discard response. */
+        uint8_t rx_dummy[PHY_ONLY_SPI_BYTES] = { 0 };
+        struct spi_ioc_transfer tr_prime = tr;
+        tr_prime.rx_buf = (unsigned long)rx_dummy;
+        if (ioctl(slot->fd, SPI_IOC_MESSAGE(1), &tr_prime) < 1) {
+            return MESA_RC_ERROR;
+        }
+        /* Capture: repeat command; rx carries the delayed response. */
+        if (ioctl(slot->fd, SPI_IOC_MESSAGE(1), &tr) < 1) {
+            return MESA_RC_ERROR;
+        }
+        *data = ((uint32_t)rx[3] << 24) | ((uint32_t)rx[4] << 16) |
+                ((uint32_t)rx[5] << 8)  | (uint32_t)rx[6];
+    } else {
+        if (ioctl(slot->fd, SPI_IOC_MESSAGE(1), &tr) < 1) {
+            return MESA_RC_ERROR;
+        }
     }
     return MESA_RC_OK;
 }
