@@ -14,6 +14,7 @@
 #include "main.h"
 #include "trace.h"
 #include "cli.h"
+#include "phy_device_get.h"
 #include "phy_only.h" /* phy_only_mdint_register() */
 
 #include "lan80xx_mcu.h"
@@ -61,6 +62,7 @@ static void cli_cmd_get_fw_info(cli_req_t *req)
     dev = gmeba_inst->phy_devices[req->port_no];
     cli_printf("Getting mcu fw info...\n");
     rc = lan80xx_get_fw_info(dev, &sInfo);
+    PHY_DEVICE_GUARD(gmeba_inst);
     if (rc != MESA_RC_OK) {
         cli_printf("FW info get failed\n");
     } else {
@@ -82,6 +84,7 @@ static void cli_cmd_mcu_reset(cli_req_t *req)
 
     cli_printf("sending mcu reset request...\n");
     rc = lan80xx_mcu_reset(dev);
+    PHY_DEVICE_GUARD(gmeba_inst);
     if (rc != MEPA_RC_OK) {
         cli_printf("mcu reset failed: %d\n", rc);
     } else {
@@ -99,6 +102,7 @@ static void cli_cmd_mcu_fw_update(cli_req_t *req)
     dev = gmeba_inst->phy_devices[req->port_no];
     cli_printf("Firmware update\n");
     rc = lan80xx_fw_update(dev);
+    PHY_DEVICE_GUARD(gmeba_inst);
     if (rc != MESA_RC_OK) {
         cli_printf("Firmware update failed (%d)\n", rc);
     } else {
@@ -127,6 +131,7 @@ static void cli_cmd_mcu_otp_read(cli_req_t *req)
     otp_cli_req_t *mreq = req->module_req;
 
     dev = gmeba_inst->phy_devices[req->port_no];
+    PHY_DEVICE_GUARD(gmeba_inst);
     if (mreq->otpLen == 0) {
         mreq->otpLen = MB_MAX_PAYLOAD_LEN;
     }
@@ -152,6 +157,7 @@ static void cli_cmd_mcu_otp_cfg_read(cli_req_t *req)
     dev = gmeba_inst->phy_devices[req->port_no];
     cli_printf("otp cfg read with record index %d\n", mreq->cfg_idx);
     rc = lan80xx_otp_cfg_read(dev, mreq->cfg_idx, gau8Data, &u16CfgLen);
+    PHY_DEVICE_GUARD(gmeba_inst);
     if (rc != MESA_RC_OK) {
         cli_printf("OTP cfg read failed (%d)\n", rc);
     } else {
@@ -169,6 +175,7 @@ static void cli_cmd_mcu_otp_cfg_write(cli_req_t *req)
     dev = gmeba_inst->phy_devices[req->port_no];
     cli_printf("otp cfg write...\n");
     rc = lan80xx_otp_cfg_program(dev, gau8OTPCfgData, &gOTPCfgUpdates[0], gOTPCfgUpdateCnt);
+    PHY_DEVICE_GUARD(gmeba_inst);
     if (rc != MESA_RC_OK) {
         cli_printf("OTP cfg write failed (%d)\n", rc);
     } else {
@@ -185,6 +192,7 @@ static void cli_cmd_mcu_otp_key_status(cli_req_t *req)
     dev = gmeba_inst->phy_devices[req->port_no];
     cli_printf("otp get key status...\n");
     rc = lan80xx_otp_getKey_Status(dev, &sKey);
+    PHY_DEVICE_GUARD(gmeba_inst);
     if (rc != MESA_RC_OK) {
         cli_printf("OTP get key status failed (%d)\n", rc);
     } else {
@@ -227,6 +235,7 @@ static void cli_cmd_mcu_otp_key_write(cli_req_t *req)
     cli_printf("otp key write...\n");
     rc = lan80xx_otp_prog_RepKey(dev, &gau8OTPKeyData[gKeyOffset], gau8OTPKeyData,
                                  &gOTPKeyUpdates[0], gOTPKeyUpdateCnt);
+    PHY_DEVICE_GUARD(gmeba_inst);
     if (rc != MESA_RC_OK) {
         cli_printf("OTP key write failed (%d)\n", rc);
     } else {
@@ -243,6 +252,7 @@ static void cli_cmd_mcu_otp_revoke_rot_key(cli_req_t *req)
     cli_printf("otp revoke rot key...\n");
     rc = lan80xx_otp_revoke_ROTKey(dev, gau8OTPRevokeROTData, &gOTPRevokeROTUpdates[0],
                                    gOTPRevokeROTUpdateCnt);
+    PHY_DEVICE_GUARD(gmeba_inst);
     if (rc != MESA_RC_OK) {
         cli_printf("OTP ROT key revoke failed (%d)\n", rc);
     } else {
@@ -259,6 +269,7 @@ static void cli_cmd_mcu_otp_revoke_all_keys(cli_req_t *req)
     cli_printf("otp revoke all keys...\n");
     rc = lan80xx_otp_revoke_AllKeys(dev, gau8OTPRevokeAllData, &gOTPRevokeAllUpdates[0],
                                     gOTPRevokeAllUpdateCnt);
+    PHY_DEVICE_GUARD(gmeba_inst);
     if (rc != MESA_RC_OK) {
         cli_printf("OTP revoke all keys failed (%d)\n", rc);
     } else {
@@ -276,6 +287,7 @@ static void cli_cmd_mcu_mem_read(cli_req_t *req)
     dev = gmeba_inst->phy_devices[req->port_no];
     cli_printf("mem read @0x%x of len 0x%x\n", mreq->Addr, mreq->Len);
     rc = lan80xx_memory_read(dev, mreq->Addr, au8Data, mreq->Len);
+    PHY_DEVICE_GUARD(gmeba_inst);
     if (rc != MESA_RC_OK) {
         cli_printf("MEM read failed (%d)\n", rc);
     } else {
@@ -333,6 +345,7 @@ static void cli_cmd_mcu_intr_gpio(cli_req_t *req)
 {
     mepa_device_t *dev = gmeba_inst->phy_devices[req->port_no];
 
+    PHY_DEVICE_GUARD(gmeba_inst);
     if (dev == NULL) {
         cli_printf("Dev not created for port %u\n", req->port_no);
         return;

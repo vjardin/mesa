@@ -12,6 +12,7 @@
 #include "port.h"
 #include "vtss_phy_10g_api.h"
 #include "phy_demo_apps.h"
+#include "phy_device_get.h"
 #include "vtss_private.h"
 #include "mepa_driver.h"
 #include "lan80xx.h"
@@ -87,6 +88,7 @@ static void cli_cmd_loopback_conf(cli_req_t *req)
     struct mepa_device *dev = meba_lp_phy_inst->phy_devices[req->port_no];
     mepa_rc             rc = MEPA_RC_OK;
 
+    PHY_DEVICE_GUARD(meba_lp_phy_inst);
     if (!req->set) {
         cli_printf("\n Syntax : loopback [<port_no>] [-f] [filename]\n");
         T_E("\n Provide Port no and filename as arguments\n");
