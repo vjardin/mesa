@@ -331,20 +331,16 @@ mesa_rc phy_only_slots_open(void)
     return MESA_RC_OK;
 }
 
-// One SPI transfer in the spi.c frame format: 23-bit address
-// (bit 23 = write) + 32-bit data; reads append the slot's padding bytes.
+// SPI transfer in the spi.c frame format: 23-bit address (bit 23 = write) +
+// 32-bit data.
+// Read is split into 2 separate SPI_IOC_MESSAGE(1) ioctls rather than 1
+// SPI_IOC_MESSAGE(2) with cs_change=1 as a workardound for SPI-controller
+// implementations don't honor cs_change correctly.
 static mesa_rc phy_only_xfer(phy_only_slot_t *slot, mesa_bool_t read,
                              uint32_t addr, uint32_t *const data)
 {
-    uint8_t tx[PHY_ONLY_SPI_BYTES + PHY_ONLY_SPI_PAD_MAX];
-    uint8_t rx[sizeof(tx)] = { 0 };
-    struct spi_ioc_transfer tr = {
-        .tx_buf = (unsigned long)tx,
-        .rx_buf = (unsigned long)rx,
-        .len = PHY_ONLY_SPI_BYTES + (read ? slot->pad : 0),
-        .speed_hz = slot->freq,
-        .bits_per_word = 8,
-    };
+    uint8_t tx[PHY_ONLY_SPI_BYTES];
+    uint8_t rx[PHY_ONLY_SPI_BYTES] = { 0 };
 
     memset(tx, 0xff, sizeof(tx));
     tx[0] = (uint8_t)((read ? 0 : 0x80) | ((addr >> 16) & 0x7f));
@@ -356,11 +352,33 @@ static mesa_rc phy_only_xfer(phy_only_slot_t *slot, mesa_bool_t read,
         tx[5] = (uint8_t)(*data >> 8);
         tx[6] = (uint8_t)(*data >> 0);
     }
-    if (ioctl(slot->fd, SPI_IOC_MESSAGE(1), &tr) < 1) {
-        return MESA_RC_ERROR;
-    }
+
+    struct spi_ioc_transfer tr = {
+        .tx_buf = (unsigned long)tx,
+        .rx_buf = (unsigned long)rx,
+        .len = PHY_ONLY_SPI_BYTES,
+        .speed_hz = slot->freq,
+        .bits_per_word = 8,
+    };
+
     if (read) {
-        *data = (rx[3] << 24) | (rx[4] << 16) | (rx[5] << 8) | rx[6];
+        // Prime: send command, discard response.
+        uint8_t rx_dummy[PHY_ONLY_SPI_BYTES] = { 0 };
+        struct spi_ioc_transfer tr_prime = tr;
+        tr_prime.rx_buf = (unsigned long)rx_dummy;
+        if (ioctl(slot->fd, SPI_IOC_MESSAGE(1), &tr_prime) < 1) {
+            return MESA_RC_ERROR;
+        }
+        // Capture: repeat command; rx carries the delayed response.
+        if (ioctl(slot->fd, SPI_IOC_MESSAGE(1), &tr) < 1) {
+            return MESA_RC_ERROR;
+        }
+        *data = ((uint32_t)rx[3] << 24) | ((uint32_t)rx[4] << 16) |
+                ((uint32_t)rx[5] << 8)  | (uint32_t)rx[6];
+    } else {
+        if (ioctl(slot->fd, SPI_IOC_MESSAGE(1), &tr) < 1) {
+            return MESA_RC_ERROR;
+        }
     }
     return MESA_RC_OK;
 }
@@ -437,7 +455,8 @@ mesa_rc phy_only_spi_rw(mepa_port_no_t port_no, mesa_bool_t read,
     if (phy_only_trace_fp != NULL) {
         phy_only_trace_op(port_no, read, mmd, reg_num);
     }
-    ch_no = slot->base + slot->ports - 1 - port_no;
+    // Direct port to slice mapping.
+    ch_no = slot->base + port_no;
 #ifdef MEPA_HAS_SPIPROXY
     if (slot->proxy) {
         return phy_only_proxy_rw(slot, ch_no, read, mmd, reg_num, data);
@@ -447,14 +466,7 @@ mesa_rc phy_only_spi_rw(mepa_port_no_t port_no, mesa_bool_t read,
         return MESA_RC_ERROR;
     }
     addr = ch_no << 21 | mmd << 16 | reg_num;
-    if (read) {
-        if (phy_only_xfer(slot, 1, addr, data) != MESA_RC_OK) {
-            return MESA_RC_ERROR;
-        }
-        addr = ch_no << 21 | PHY_ONLY_DEVICE_ID_MMD << 16 | PHY_ONLY_DEVICE_ID_REG;
-        return phy_only_xfer(slot, 1, addr, data);
-    }
-    return phy_only_xfer(slot, 0, addr, data);
+    return phy_only_xfer(slot, read, addr, data);
 }
 
 // Hardware-reset the LAN80xx package owning `port_no` by asking the SPI
