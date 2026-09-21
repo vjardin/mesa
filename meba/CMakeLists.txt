@@ -1,7 +1,7 @@
 # Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
 # SPDX-License-Identifier: MIT
 
-project(meba)
+project(meba LANGUAGES C)
 
 cmake_minimum_required(VERSION 3.15)
 
