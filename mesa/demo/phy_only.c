@@ -134,6 +134,7 @@ void phy_only_init_modules(mscc_appl_init_t *init)
 // Configurable PHY slots (-P option), see phy_only.h.
 //
 #define PHY_ONLY_SLOT_MAX    8
+#define PHY_ONLY_SLOT_PORTS  4  /* ports of one package, 2-bit slice field */
 #define PHY_ONLY_SPI_BYTES   7  /* 3 address + 4 data, as in spi.c */
 #define PHY_ONLY_SPI_PAD_MAX 15
 
@@ -146,6 +147,7 @@ typedef struct {
     int      freq;
     uint32_t ports;      /* demo ports covered by this slot */
     uint32_t base;       /* first demo port of this slot */
+    uint8_t  slice[PHY_ONLY_SLOT_PORTS]; /* SPI slice of each port of the slot */
     int      fd;
     int      proxy;      /* 0 = direct spidev, 1 = via lan80xx-spid */
     uint32_t seq;        /* proxy request sequence */
@@ -195,10 +197,57 @@ int phy_only_slots_configured(void)
     return phy_only_slot_cnt;
 }
 
+//   order=rev   port 0 is the highest slice (default, the EDSx convention)
+//   order=fwd   port N is slice N
+//   map=a,b,.. one slice per port, in port order, for any other wiring
+static mesa_rc phy_only_slot_order(phy_only_slot_t *slot, const char *order)
+{
+    uint32_t i, n = 0, seen = 0;
+    const char *p;
+    char *end;
+    long v;
+
+    if (order == NULL || strcmp(order, "order=rev") == 0) {
+        for (i = 0; i < slot->ports; i++) {
+            slot->slice[i] = slot->ports - 1 - i;
+        }
+        return MESA_RC_OK;
+    }
+    if (strcmp(order, "order=fwd") == 0) {
+        for (i = 0; i < slot->ports; i++) {
+            slot->slice[i] = i;
+        }
+        return MESA_RC_OK;
+    }
+    if (strncmp(order, "map=", 4) != 0) {
+        fprintf(stderr, "-P: unknown '%s' (order=rev, order=fwd or map=a,b,...)\n", order);
+        return MESA_RC_ERROR;
+    }
+    for (p = order + 4; ; p = end + 1) {
+        v = strtol(p, &end, 10);
+        if (end == p || v < 0 || v >= PHY_ONLY_SLOT_PORTS || (seen & (1u << v)) ||
+            n >= slot->ports) {
+            fprintf(stderr, "-P: bad '%s': one distinct slice 0..%d per port\n",
+                    order, PHY_ONLY_SLOT_PORTS - 1);
+            return MESA_RC_ERROR;
+        }
+        seen |= 1u << v;
+        slot->slice[n++] = (uint8_t)v;
+        if (*end != ',') {
+            break;
+        }
+    }
+    if (*end != '\0' || n != slot->ports) {
+        fprintf(stderr, "-P: bad '%s': %u slice(s) for %u port(s)\n", order, n, slot->ports);
+        return MESA_RC_ERROR;
+    }
+    return MESA_RC_OK;
+}
+
 static mesa_rc phy_only_slot_opt(char *parm)
 {
     phy_only_slot_t *slot;
-    char *s;
+    char *s, *order = NULL;
 
     if (phy_only_slot_cnt >= PHY_ONLY_SLOT_MAX) {
         fprintf(stderr, "-P: at most %d PHY slots\n", PHY_ONLY_SLOT_MAX);
@@ -207,7 +256,14 @@ static mesa_rc phy_only_slot_opt(char *parm)
     slot = &phy_only_slot[phy_only_slot_cnt];
     slot->pad = 1;
     slot->freq = 15000000;
-    slot->ports = 4;
+    slot->ports = PHY_ONLY_SLOT_PORTS;
+
+    // optional trailing ':order=...' / ':map=...', common to both forms
+    if ((s = strrchr(parm, ':')) != NULL &&
+        (strncmp(s + 1, "order=", 6) == 0 || strncmp(s + 1, "map=", 4) == 0)) {
+        *s++ = 0;
+        order = s;
+    }
 
     if (strncmp(parm, "proxy:", 6) == 0) {
 #ifndef MEPA_HAS_SPIPROXY
@@ -241,8 +297,11 @@ static mesa_rc phy_only_slot_opt(char *parm)
             }
         }
     }
-    if (slot->ports < 1 || slot->ports > 4) {
-        fprintf(stderr, "-P: ports must be 1..4\n");
+    if (slot->ports < 1 || slot->ports > PHY_ONLY_SLOT_PORTS) {
+        fprintf(stderr, "-P: ports must be 1..%d\n", PHY_ONLY_SLOT_PORTS);
+        return MESA_RC_ERROR;
+    }
+    if (phy_only_slot_order(slot, order) != MESA_RC_OK) {
         return MESA_RC_ERROR;
     }
     if ((size_t)snprintf(slot->dev, sizeof(slot->dev), "%s", parm) >= sizeof(slot->dev)) {
@@ -254,24 +313,33 @@ static mesa_rc phy_only_slot_opt(char *parm)
                   phy_only_slot[phy_only_slot_cnt - 1].ports) : 0;
     phy_only_slot_cnt++;
     if (slot->proxy) {
-        printf("PHY slot %d: proxy %s, ports %u..%u\n",
+        printf("PHY slot %d: proxy %s, ports %u..%u",
                phy_only_slot_cnt, slot->dev, slot->base,
                slot->base + slot->ports - 1);
     } else {
-        printf("PHY slot %d: %s, ports %u..%u, %d padding byte(s) at %d Hz\n",
+        printf("PHY slot %d: %s, ports %u..%u, %d padding byte(s) at %d Hz",
                phy_only_slot_cnt, slot->dev, slot->base,
                slot->base + slot->ports - 1, slot->pad, slot->freq);
     }
+    printf(", slices");
+    for (uint32_t i = 0; i < slot->ports; i++) {
+        printf("%c%u", i ? ',' : ' ', slot->slice[i]);
+    }
+    printf("\n");
     return MESA_RC_OK;
 }
 
 static mscc_appl_opt_t phy_only_opt = {
     "P:",
-    "<spidev[@pad[@freq]]|proxy:sock>[:ports]",
+    "<spidev[@pad[@freq]]|proxy:sock>[:ports][:order=rev|fwd|:map=a,b,...]",
     "PHY-only slot: one PHY package serving 'ports' (default 4 =\n"
     "                          quad footprint; repeatable; forces PHY-only mode and replaces\n"
     "                          the built-in slot devices). Direct spidev access, or shared\n"
-    "                          access through the SPI proxy socket (proxy:<path>).",
+    "                          access through the SPI proxy socket (proxy:<path>).\n"
+    "                          Port -> slice order is board specific:\n"
+    "                            order=rev (default, port 0 = highest slice)\n"
+    "                            order=fwd (port N = slice N, port 0 = lowest slice)\n"
+    "                            map=a,b,... (the slice of each port, in port order)",
     phy_only_slot_opt
 };
 
@@ -437,7 +505,7 @@ mesa_rc phy_only_spi_rw(mepa_port_no_t port_no, mesa_bool_t read,
     if (phy_only_trace_fp != NULL) {
         phy_only_trace_op(port_no, read, mmd, reg_num);
     }
-    ch_no = slot->base + slot->ports - 1 - port_no;
+    ch_no = slot->slice[port_no - slot->base];
 #ifdef MEPA_HAS_SPIPROXY
     if (slot->proxy) {
         return phy_only_proxy_rw(slot, ch_no, read, mmd, reg_num, data);
