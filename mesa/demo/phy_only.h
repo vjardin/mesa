@@ -39,7 +39,8 @@ mesa_rc phy_only_board_conf_get(const char *tag, char *buf,
 void phy_only_init_modules(mscc_appl_init_t *init);
 
 // Configurable PHY slots:
-//   -P <spidev>[@pad[@freq]][:ports]
+//   -P <spidev>[@pad[@freq]][:ports][:order=rev|:order=fwd|:map=a,b,...]
+//   -P proxy:<socket>[:ports][:order=rev|:order=fwd|:map=a,b,...]
 // once per SPI-attached PHY package.
 // Without -P the stock slot devices (/dev/spidev0.1, /dev/spidev0.2) apply
 // unchanged;
