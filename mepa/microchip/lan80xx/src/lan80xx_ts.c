@@ -793,3 +793,40 @@ mepa_ts_driver_t lan80xx_ts_drivers = {
     .mepa_driver_ts_csr_reg_read               = lan80xx_phy_ts_csr_read,
     .mepa_driver_ts_csr_reg_write              = lan80xx_phy_ts_csr_write,
 };
+
+/* The 1588 block takes its speed from port_state, which only mepa_conf_set()
+ * fills: an instance that did not configure the PHY (e.g. a PTP daemon while
+ * mesa-demo-void owns the port) ran the timestamp processor of a 10G port in
+ * 25G mode and produced no egress timestamp. */
+mepa_rc lan80xx_ts_port_speed_hint_set(mepa_device_t *dev, mepa_port_no_t port_no, mepa_port_speed_t speed, mepa_bool_t mac_retimer)
+{
+    phy25g_phy_state_t *data = (phy25g_phy_state_t *)dev->data;
+    mepa_rc rc = MEPA_RC_OK;
+
+    (void)port_no;   /* every exported lan80xx entry point carries it: the mesa-demo RPC generator maps dev from it */
+
+    MEPA_ENTER(dev);
+    if (data->port_state.speed != SPEED_NONE) {
+        rc = MEPA_RC_ERROR;
+    } else {
+        switch (speed) {
+        case MESA_SPEED_1G:
+            data->port_state.speed = SPEED_1G;
+            break;
+        case MESA_SPEED_10G:
+            data->port_state.speed = SPEED_10G;
+            break;
+        case MESA_SPEED_25G:
+            data->port_state.speed = SPEED_25G;
+            break;
+        default:
+            rc = MEPA_RC_ERR_PARM;
+            break;
+        }
+        if (rc == MEPA_RC_OK) {
+            data->port_state.port_mode.oper_mode = mac_retimer ? MAC_RETIMER : PCS_RETIMER;
+        }
+    }
+    MEPA_EXIT(dev);
+    return rc;
+}
