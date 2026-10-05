@@ -469,6 +469,11 @@ mepa_rc lan80xx_phy_lfs_get(const mepa_device_t  *dev,
     return MEPA_RC_NOT_IMPLEMENTED;
 }
 
+mepa_rc lan80xx_ts_port_speed_hint_set(mepa_device_t *dev, mepa_port_no_t port_no, mepa_port_speed_t speed, mepa_bool_t mac_retimer)
+{
+    return MEPA_RC_NOT_IMPLEMENTED;
+}
+
 #if 0
 mepa_rc lan80xx_ANEG_GetConfig(const mepa_device_t  *dev,
                                KR_PORT_CONF *psConfig)
