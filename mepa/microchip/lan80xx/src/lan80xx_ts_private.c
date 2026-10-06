@@ -1080,7 +1080,13 @@ mepa_rc lan80xx_ts_reset_priv(mepa_device_t *dev, const mepa_ts_reset_conf_t *co
                  LAN80XX_F_LINE_SLICE_LINE_IP1588_RESET_IP1588_EGR_RST(0);
         LAN80XX_CSR_COLD_WR(data->port_no, LAN80XX_LINE_SLICE_LINE_IP1588_RESET, u32Val);
 
-        rc = lan80xx_ts_mode_set_priv(dev, FALSE);
+        /* The block of a port that was never initialized has nothing to
+         * disable, and lan80xx_ts_mode_set_priv() logs an error for it: a
+         * hard reset before the first init (the idempotent pre-flight of an
+         * application) printed "Init not done" twice per start. */
+        if (data->phy_ts_port_conf.port_ts_init_done == TRUE) {
+            rc = lan80xx_ts_mode_set_priv(dev, FALSE);
+        }
         T_D(MEPA_TRACE_GRP_TS, "Reseted and Disabled PTP on port : %d\n", data->port_no);
 
         rc = lan80xx_phy_ts_stats_clear_priv(dev, data->port_no);
