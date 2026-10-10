@@ -275,6 +275,14 @@ foreach(_fam_hdr_dir IN ITEMS
     endif()
 endforeach()
 
+if(lm_utils_SOURCE_DIR)
+    install(
+        DIRECTORY ${lm_utils_SOURCE_DIR}/include/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mepa
+        FILES_MATCHING PATTERN "*.h"
+    )
+endif()
+
 # Common driver source drop -- downstream users compile these against
 # libmepa (mepa_ts_driver.h, mepa_driver.h, mepa_os.h, phy.c ...).
 install(
