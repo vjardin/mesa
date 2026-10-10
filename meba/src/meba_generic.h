@@ -70,6 +70,7 @@ mesa_rc meba_generic_phy_event_check(meba_inst_t         inst,
 
 uint32_t meba_get_phy_id(meba_inst_t inst, uint32_t port_no, meba_port_entry_t port_entry);
 void     meba_phy_driver_init(meba_inst_t inst);
+void     meba_phy_callout_init(meba_inst_t inst);
 
 static inline mesa_bool_t has_cap(meba_port_cap_t port_cap, meba_port_cap_t cap)
 {
