@@ -11,6 +11,7 @@
 #include "cli.h"
 #include "port.h"
 #include "phy_demo_apps.h"
+#include "phy_device_get.h"
 #include "mesa-rpc.h"
 #include <mepa_apps/phy_ts_demo.h>
 
@@ -2007,6 +2008,7 @@ static void cli_cmd_ts_ltc_ls(cli_req_t *req)
     ts_configuration *mreq = req->module_req;
     mepa_ts_ls_type_t ls_type;
 
+    PHY_DEVICE_GUARD(meba_ts_instance);
     switch (mreq->action) {
     case 0:  ls_type = MEPA_TS_CMD_LOAD; break;
     case 1:  ls_type = MEPA_TS_CMD_SAVE; break;
@@ -2042,6 +2044,7 @@ static void cli_cmd_ts_pps_incfg(cli_req_t *req)
 
     pin_conf.clk_select = mreq->clk_select;
     pin_conf.pin_inv_pol = LAN80XX_PTP_LSC_ACTIVE_HIGH;
+    PHY_DEVICE_GUARD(meba_ts_instance);
     switch (mreq->pin_sync_mode) {
     case 0: pin_conf.pin_sync_mode = LAN80XX_PTP_ACTION_IMMEDIATE; break;
     case 1: pin_conf.pin_sync_mode = LAN80XX_PTP_ACTION_ONE_SHOT_ON_ACTIVE_EDGE; break;
@@ -2065,6 +2068,7 @@ static void cli_cmd_ts_1pps_out_en(cli_req_t *req)
 {
     ts_configuration        *mreq = req->module_req;
     phy25g_pps_output_conf_t pin_conf;
+    PHY_DEVICE_GUARD(meba_ts_instance);
     pin_conf.clk_select = LAN80XX_PTP_ASYNC_NO_CLOCK; /* Asyncronous 1-line 1PPS singnal */
     pin_conf.pin_inv_pol = LAN80XX_PTP_LSC_ACTIVE_HIGH;
     pin_conf.pin_sync_mode = LAN80XX_PTP_LSC_1PPS;
@@ -2100,6 +2104,7 @@ static void cli_cmd_ts_pps_outcfg(cli_req_t *req)
     pin_conf.pps_pulse_high = mreq->pps_width;
     pin_conf.pps_pulse_low = mreq->pps_interval;
 
+    PHY_DEVICE_GUARD(meba_ts_instance);
     if (MEPA_RC_OK == lan80xx_phy_ts_pps_ouput_conf_set(meba_ts_instance->phy_devices[req->port_no],
                                                         req->port_no, &pin_conf)) {
         cli_printf("\n ...... TS PPS Output Configured for Port : %d......\n", (req->port_no + 1));
@@ -2125,6 +2130,7 @@ static void cli_cmd_ts_serial_incfg(cli_req_t *req)
     sertod_conf.Ld_period_cfg.one_microsec_period_cfg = 318;
     sertod_conf.Ld_period_cfg.one_sec_wait_period_cfg = 999999;
 
+    PHY_DEVICE_GUARD(meba_ts_instance);
     if (MEPA_RC_OK ==
         lan80xx_phy_ts_sertod_input_confset(meba_ts_instance->phy_devices[req->port_no],
                                             req->port_no, &sertod_conf)) {
@@ -2149,6 +2155,7 @@ static void cli_cmd_ts_serial_outcfg(cli_req_t *req)
     sertod_conf.pin_wfh_period = mreq->wfh_period;
     sertod_conf.pin_wfl_period = mreq->wfl_period;
 
+    PHY_DEVICE_GUARD(meba_ts_instance);
     if (MEPA_RC_OK ==
         lan80xx_phy_ts_sertod_output_confset(meba_ts_instance->phy_devices[req->port_no],
                                              req->port_no, &sertod_conf)) {
@@ -2169,6 +2176,7 @@ static void cli_cmd_ts_delta_adj(cli_req_t *req)
     phy25g_ltc_tod_adj.subnanoseconds = mreq->picoseconds;
     phy25g_ltc_tod_adj.lsc_select = mreq->ls_ctrl_sel;
 
+    PHY_DEVICE_GUARD(meba_ts_instance);
     if (MEPA_RC_OK == lan80xx_phy_ts_ptptime_adj_delta(meba_ts_instance->phy_devices[req->port_no],
                                                        req->port_no, &phy25g_ltc_tod_adj)) {
         cli_printf("\n ...... TS LTC Delta Adjust Configured for Port : %d......\n",
@@ -2189,6 +2197,7 @@ static void cli_cmd_ts_epps_config(cli_req_t *req)
     epps_conf.epps_event_detect_adjust = mreq->epps_det_cfg;
     epps_conf.lsc_select = mreq->ls_ctrl_sel;
 
+    PHY_DEVICE_GUARD(meba_ts_instance);
     if (MEPA_RC_OK == lan80xx_phy_ts_epps_conf_set(meba_ts_instance->phy_devices[req->port_no],
                                                    req->port_no, &epps_conf)) {
         cli_printf("\n ...... TS EPPS Configured for Port : %d......\n", (req->port_no + 1));
@@ -2202,6 +2211,7 @@ static void cli_cmd_ts_ltc_get(cli_req_t *req)
 {
     mepa_timestamp_t timestamp;
 
+    PHY_DEVICE_GUARD(meba_ts_instance);
     if (MEPA_RC_OK == mepa_ts_ltc_get(meba_ts_instance->phy_devices[req->port_no], &timestamp)) {
         cli_printf("\n\n ...... TS Local Time Counter on Port : %d......\n", (req->port_no + 1));
         cli_printf("seconds.high: %u\n", timestamp.seconds.high);
@@ -2226,6 +2236,7 @@ static void cli_cmd_ts_ltc_set(cli_req_t *req)
     timestamp.nanoseconds = mreq->nanoseconds;
     timestamp.picoseconds = mreq->picoseconds;
 
+    PHY_DEVICE_GUARD(meba_ts_instance);
     if (MEPA_RC_OK == mepa_ts_ltc_set(meba_ts_instance->phy_devices[req->port_no], &timestamp)) {
         cli_printf("\n ...... TS LTC Set on Port : %d......\n", (req->port_no + 1));
     } else {
@@ -2241,6 +2252,7 @@ static void cli_cmd_ts_fifo_get(cli_req_t *req)
     mepa_rc         rc = MEPA_RC_ERROR;
 
     rc = mepa_ts_event_poll(meba_ts_instance->phy_devices[req->port_no], &status);
+    PHY_DEVICE_GUARD(meba_ts_instance);
     if (rc != MEPA_RC_OK) {
         cli_printf("TS Event get failed\n");
         return;
@@ -2272,6 +2284,7 @@ static void cli_cmd_ts_sig_conf(cli_req_t *req)
     demo_phy_info_t         phy_family;
     mepa_ts_fifo_sig_mask_t phy_sig_mask = 0;
 
+    PHY_DEVICE_GUARD(meba_ts_instance);
     if ((rc = phy_family_detect(meba_ts_instance, req->port_no, &phy_family)) != MEPA_RC_OK) {
         T_E("\n Error in Detecting PHY Family on Port %d\n", (req->port_no + 1));
         return;
@@ -2334,6 +2347,7 @@ static void cli_cmd_ts_delay_set(cli_req_t *req)
     mepa_timeinterval_t delay;
     delay = ((1 << 8) * mreq->delay);
 
+    PHY_DEVICE_GUARD(meba_ts_instance);
     if (mreq->delay_mode == 0) {
         if (MEPA_RC_OK ==
             mepa_ts_delay_asymmetry_set(meba_ts_instance->phy_devices[req->port_no], &delay)) {
@@ -2373,6 +2387,7 @@ static void cli_cmd_ts_delay_get(cli_req_t *req)
 {
     ts_configuration   *mreq = req->module_req;
     mepa_timeinterval_t delay;
+    PHY_DEVICE_GUARD(meba_ts_instance);
     if (mreq->delay_mode == 0) {
         if (MEPA_RC_OK ==
             mepa_ts_delay_asymmetry_get(meba_ts_instance->phy_devices[req->port_no], &delay)) {
@@ -2425,6 +2440,7 @@ static void cli_cmd_ts_flow_disable(cli_req_t *req)
 
     rc = mepa_ts_tx_classifier_conf_get(meba_ts_instance->phy_devices[req->port_no], flow_index,
                                         &tx_class_conf);
+    PHY_DEVICE_GUARD(meba_ts_instance);
     if (rc != MEPA_RC_OK) {
         cli_printf("\n Failed to Get TX Classifier conf\n");
         return;
@@ -2492,6 +2508,7 @@ static void cli_cmd_ts_port_stati(cli_req_t *req)
     mepa_ts_stats_t stats;
     mepa_rc         result = mepa_ts_stats_get(meba_ts_instance->phy_devices[req->port_no], &stats);
 
+    PHY_DEVICE_GUARD(meba_ts_instance);
     if (result == MEPA_RC_OK) {
         cli_printf("\n Timestamp Port Statistics");
         cli_printf("\n ============================");
@@ -2531,6 +2548,7 @@ static void cli_print_wrapped_json(const char *json_str, int width)
 static void cli_cmd_ts_conf_get(cli_req_t *req)
 {
     ts_configuration *mreq = req->module_req;
+    PHY_DEVICE_GUARD(meba_ts_instance);
     json_rpc_req_t    json_req = {}; // Initialize the JSON-RPC request structure
     json_object      *jobj = NULL;   // Pointer to hold the created JSON object
     uint16_t          flw_idx_clk_id = 0;
@@ -2625,6 +2643,7 @@ static void cli_cmd_ts_csr_rd(cli_req_t *req)
     ts_configuration *mreq = req->module_req;
 
     mreq->csr_value = 0;
+    PHY_DEVICE_GUARD(meba_ts_instance);
     if (MEPA_RC_OK == mepa_ts_csr_reg_read(meba_ts_instance->phy_devices[req->port_no], mreq->mmd,
                                            mreq->csr_addr, &mreq->csr_value)) {
         cli_printf("\n");
@@ -2644,6 +2663,7 @@ static void cli_cmd_ts_csr_wr(cli_req_t *req)
 {
     ts_configuration *mreq = req->module_req;
 
+    PHY_DEVICE_GUARD(meba_ts_instance);
     if (MEPA_RC_OK != mepa_ts_csr_reg_write(meba_ts_instance->phy_devices[req->port_no], mreq->mmd,
                                             mreq->csr_addr, &mreq->csr_value)) {
         cli_printf("\n TS csr Write Failed for addr:%x at Port:%d", mreq->csr_addr, req->port_no);
@@ -2682,6 +2702,7 @@ static void cli_cmd_ts_reset(cli_req_t *req)
     mepa_ts_reset_conf_t tsreset = {0};
     tsreset.tsu_hard_reset = 1;
 
+    PHY_DEVICE_GUARD(meba_ts_instance);
     if (MEPA_RC_OK == mepa_ts_reset(meba_ts_instance->phy_devices[req->port_no], &tsreset)) {
         cli_printf("\n ...... TS Reset on Port : %d......\n", (req->port_no + 1));
     } else {

@@ -17,6 +17,7 @@
 #include "port.h"
 #include "mepa_driver.h"
 #include "phy_demo_apps.h"
+#include "phy_device_get.h"
 
 static void cli_cmd_cable_diagnostics(cli_req_t *req);
 
@@ -46,6 +47,7 @@ static void cli_cmd_cable_diagnostics(cli_req_t *req)
     char                    *CableDiagStatusStrings[] = {"OK", "OPEN", "SHORT", NULL, "ABNORM"};
     char                    *PairNameStrings[] = {"A", "B", "C", "D"};
 
+    PHY_DEVICE_GUARD(meba_phy_diag_inst);
     if ((rc = phy_family_detect(meba_phy_diag_inst, req->port_no, &phy_family)) != MEPA_RC_OK) {
         T_E("\n Error in Detecting PHY Family on Port %d\n", req->port_no);
         return;

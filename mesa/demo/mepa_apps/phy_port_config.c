@@ -12,6 +12,7 @@
 #include "port.h"
 #include "phy_port_config.h"
 #include "phy_demo_apps.h"
+#include "phy_device_get.h"
 #include "microchip/lan8814_cs.h"
 #include "lan80xx.h"
 
@@ -71,6 +72,11 @@ static int mepa_drv_create(const mepa_port_no_t port_no)
     port_cnt = meba_phy_inst->api.meba_capability(meba_phy_inst, MEBA_CAP_BOARD_PORT_COUNT);
     if (port_cnt <= 0) {
         T_E("Invalid port number from meba\n");
+        return MESA_RC_ERROR;
+    }
+    if (port_no >= (mepa_port_no_t)port_cnt) {
+        T_E("Invalid port_no %u (valid uport range: 1..%d)", port_no, port_cnt);
+        cli_printf("Error: invalid port_no (specify a valid uport 1..%d).\n", port_cnt);
         return MESA_RC_ERROR;
     }
 
@@ -144,6 +150,10 @@ static int mepa_drv_create(const mepa_port_no_t port_no)
 static int mepa_drv_del(const mepa_port_no_t port_no)
 {
     cli_printf("\nDeleting dev port_no %u\n", port_no);
+    if (port_no >= (mepa_port_no_t)port_cnt) {
+        T_E("Invalid port_no %u (valid uport range: 1..%d)", port_no, port_cnt);
+        return MESA_RC_ERROR;
+    }
     if (meba_phy_inst->phy_devices[port_no]) {
         if (mepa_delete(meba_phy_inst->phy_devices[port_no]) != MEPA_RC_OK) {
             T_E("Unable to delete the mepa device %d", port_no);
@@ -266,7 +276,7 @@ static void cli_cmd_fpp_set(cli_req_t *req)
 {
     mepa_rc         rc;
     demo_phy_info_t phy_family;
-    if (meba_phy_inst->phy_devices[req->port_no] == NULL) {
+    if (phy_device_get(meba_phy_inst, req->port_no) == NULL) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
     }
@@ -292,7 +302,7 @@ static void cli_cmd_fpp_get(cli_req_t *req)
     mepa_rc         rc;
     demo_phy_info_t phy_family;
     mepa_bool_t     val = 0;
-    if (meba_phy_inst->phy_devices[req->port_no] == NULL) {
+    if (phy_device_get(meba_phy_inst, req->port_no) == NULL) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
     }

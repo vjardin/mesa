@@ -11,6 +11,7 @@
 #include "cli.h"
 #include "port.h"
 #include "phy_demo_apps.h"
+#include "phy_device_get.h"
 #include "phy_gpio_demo.h"
 #include <vtss_phy_api.h>
 #include "lan80xx.h"
@@ -224,6 +225,7 @@ static void cli_cmd_gpio_conf(cli_req_t *req)
     unsigned int                        m;
     int                                 i;
 
+    PHY_DEVICE_GUARD(meba_gpio_lp_instance);
     if ((rc = mepa_dev_create_check(meba_gpio_lp_instance, req->port_no)) != MEPA_RC_OK) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
@@ -954,6 +956,7 @@ static void cli_cmd_gpio_out_set(cli_req_t *req)
 {
     mepa_rc             rc;
     gpio_configuration *mreq = req->module_req;
+    PHY_DEVICE_GUARD(meba_gpio_lp_instance);
     if ((rc = mepa_dev_create_check(meba_gpio_lp_instance, req->port_no)) != MEPA_RC_OK) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
@@ -972,6 +975,7 @@ static void cli_cmd_gpio_in_get(cli_req_t *req)
     gpio_configuration *mreq = req->module_req;
     ;
     mepa_bool_t value;
+    PHY_DEVICE_GUARD(meba_gpio_lp_instance);
     if ((rc = mepa_dev_create_check(meba_gpio_lp_instance, req->port_no)) != MEPA_RC_OK) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
@@ -991,6 +995,7 @@ static void cli_cmd_gpio_toggle(cli_req_t *req)
     gpio_configuration *mreq = req->module_req;
     ;
     mepa_bool_t value;
+    PHY_DEVICE_GUARD(meba_gpio_lp_instance);
     if ((rc = mepa_dev_create_check(meba_gpio_lp_instance, req->port_no)) != MEPA_RC_OK) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
@@ -1016,6 +1021,7 @@ static void cli_cmd_event_conf_set(cli_req_t *req)
     phy25g_ext_event_conf_t ext_evt_conf;
     uint8_t                 evt;
 
+    PHY_DEVICE_GUARD(meba_gpio_lp_instance);
     if ((rc = mepa_dev_create_check(meba_gpio_lp_instance, req->port_no)) != MEPA_RC_OK) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
         return;
