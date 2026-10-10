@@ -11,6 +11,10 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 include(CMakeParseArguments)
 include(.cmake/common.cmake)
 
+# GCC 15 upgraded -Wformat-truncation warnings to hit conservative-INT_MAX
+# snprintf bounds in meba/src/drivers/poe_driver.c. Non-fatal until upstream.
+add_compile_options(-Wno-error=format-truncation)
+
 option(BUILD_ALL         "Enable all" OFF)
 option(BUILD_STATIC_LIBS "Build static versions of the libraries" ON)
 option(BUILD_SHARED_LIBS "Build shared versions of the libraries" ON)
