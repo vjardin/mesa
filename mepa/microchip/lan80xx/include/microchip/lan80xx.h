@@ -1004,4 +1004,22 @@ mepa_rc lan80xx_xconnect_hostfailover_Protection(mepa_device_t  *dev, mepa_port_
 mepa_rc lan80xx_xconnect_failover(mepa_device_t *dev, const mepa_port_no_t port_no);
 mepa_rc lan80xx_xconnect_conf_get(mepa_device_t  *dev, const mepa_port_no_t   port_no, phy25g_xconnect_get_conf_t   *const get_conf);
 mepa_rc lan80xx_xconnect_force_failover(mepa_device_t *dev, const mepa_port_no_t port_no);
+/**
+ * \brief Speed and retimer mode of a port whose PHY this instance did not
+ * configure. The 1588 block of a port is programmed (lan80xx_ts_port_init:
+ * timestamp processor speed, latency table) from the speed stored by
+ * mepa_conf_set(); an application that owns only the timestamp unit, the
+ * PHY being configured by another process, calls this before
+ * mepa_ts_init_conf_set(). Nothing is written to the chip.
+ *
+ * \param dev         [IN] mepa driver
+ * \param port_no     [IN] port number (the mesa-demo RPC convention; unused)
+ * \param speed       [IN] MESA_SPEED_1G, MESA_SPEED_10G or MESA_SPEED_25G
+ * \param mac_retimer [IN] TRUE for MAC_RETIMER, FALSE for PCS_RETIMER
+ *
+ * \return MEPA_RC_OK; MEPA_RC_ERROR when the port was configured by this
+ * instance (its state is authoritative); MEPA_RC_ERR_PARM for another speed.
+ **/
+mepa_rc lan80xx_ts_port_speed_hint_set(mepa_device_t *dev, mepa_port_no_t port_no, mepa_port_speed_t speed, mepa_bool_t mac_retimer);
+
 #endif //  end of _LAN80XX_H_
