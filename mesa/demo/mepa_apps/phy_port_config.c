@@ -125,9 +125,23 @@ static int mepa_drv_create(const mepa_port_no_t port_no)
         return MESA_RC_ERROR;
     }
     meba_phy_info_get(meba_phy_inst, port_no, &phy_info);
-    phy_reset.media_intf = ((phy_info.part_number & 0xfff0) != MALIBU_SPECIFIC_CHECK)
-                               ? MESA_PHY_MEDIA_IF_CU
-                               : MESA_PHY_MEDIA_IF_FI_10G_LAN;
+    /* LAN80xx: clear DFU strap (STRAP_OVERRIDE_REG.0) or DEFAULT reset hangs. */
+    if ((phy_info.part_number & 0xff00) == 0x8000) {
+        uint32_t strap = 0;
+        if (lan80xx_phy_csr_read(meba_phy_inst->phy_devices[port_no], port_no,
+                                 0x1EU, 0x0201U, &strap) == MEPA_RC_OK &&
+            (strap & 0x1U) != 0U) {
+            strap &= ~0x1U;
+            (void)lan80xx_phy_csr_write(meba_phy_inst->phy_devices[port_no], port_no,
+                                        0x1EU, 0x0201U, strap);
+        }
+    }
+    if ((phy_info.part_number & 0xfff0) == MALIBU_SPECIFIC_CHECK ||
+        (phy_info.part_number & 0xff00) == 0x8000) {
+        phy_reset.media_intf = MESA_PHY_MEDIA_IF_FI_10G_LAN;
+    } else {
+        phy_reset.media_intf = MESA_PHY_MEDIA_IF_CU;
+    }
     phy_reset.reset_point = MEPA_RESET_POINT_DEFAULT;
     if ((mepa_reset(meba_phy_inst->phy_devices[port_no], &phy_reset) != MESA_RC_OK)) {
         T_E("Default reset failed %d", port_no);
@@ -256,6 +270,16 @@ static void cli_cmd_phy_conf(cli_req_t *req)
                            iport2uport(req->port_no), rc);
             } else {
                 cli_printf("conf applied on port %u\n", iport2uport(req->port_no));
+                /* Re-run POST reset so SerDes latches with the applied media. */
+                mepa_reset_param_t post_reset = {};
+                post_reset.reset_point = MEPA_RESET_POINT_POST;
+                post_reset.media_intf = (conf.speed == MESA_SPEED_10G ||
+                                         conf.speed == MESA_SPEED_25G)
+                                            ? MESA_PHY_MEDIA_IF_FI_10G_LAN
+                                            : MESA_PHY_MEDIA_IF_CU;
+                if (mepa_reset(dev, &post_reset) != MESA_RC_OK) {
+                    T_E("Post-conf POST reset failed on port %u", req->port_no);
+                }
             }
         file_close:
             free(buffer);
