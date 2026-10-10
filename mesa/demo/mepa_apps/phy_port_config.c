@@ -76,6 +76,10 @@ static int mepa_drv_create(const mepa_port_no_t port_no)
 
     if (meba_phy_inst->phy_devices[port_no]) {
         T_E("Device Already existing on %d", port_no);
+        cli_printf("Error: device already exists on port %u (created at board init).\n"
+                   "Run 'PHY Dev Del %u' first so Create re-probes and "
+                   "runs the PRE/DEFAULT/POST reset sequence.\n",
+                   iport2uport(port_no), iport2uport(port_no));
         return MESA_RC_ERROR;
     }
 
@@ -164,6 +168,7 @@ static void cli_cmd_dev_attach(cli_req_t *req)
 {
     mesa_port_conf_t conf;
     port_cli_req_t  *mreq = req->module_req;
+    mesa_rc          rc;
     mepa_device_t   *dev;
     dev = meba_phy_inst->phy_devices[req->port_no];
     if (mesa_port_conf_get(NULL, req->port_no, &conf) != MESA_RC_OK) {
@@ -173,14 +178,14 @@ static void cli_cmd_dev_attach(cli_req_t *req)
         req->rc = 0;
     }
     conf.if_type = mreq->interface;
-    if (mesa_port_conf_set(NULL, req->port_no, &conf) != MESA_RC_OK) {
+    if ((rc = mesa_port_conf_set(NULL, req->port_no, &conf)) != MESA_RC_OK) {
         req->rc = -1;
-        T_E("mesa_port_conf_set(%u) failed %d\n", req->port_no);
+        T_E("mesa_port_conf_set(%u) failed %d\n", req->port_no, rc);
     } else {
         req->rc = 0;
     }
-    if (mepa_if_set(dev, mreq->interface) != MESA_RC_OK) {
-        T_E("mepa_if_set(%u) failed %d\n", req->port_no);
+    if ((rc = mepa_if_set(dev, mreq->interface)) != MESA_RC_OK) {
+        T_E("mepa_if_set(%u) failed %d\n", req->port_no, rc);
     } else {
         req->rc = 0;
     }
@@ -203,6 +208,7 @@ static void cli_cmd_phy_conf(cli_req_t *req)
     struct json_object *jobj;
     json_rpc_req_t      json_req = {};
     json_req.ptr = json_req.buf;
+    mepa_rc        rc;
     mepa_device_t *dev;
     int            size;
     char           port_config_file[100];
@@ -242,8 +248,14 @@ static void cli_cmd_phy_conf(cli_req_t *req)
                 T_E("Error in the json configuration %s", json_req.buf);
                 goto file_close;
             }
-            if (mepa_conf_set(dev, &conf) != MESA_RC_OK) {
+            if ((rc = mepa_conf_set(dev, &conf)) != MESA_RC_OK) {
                 T_E("Error in Configuring the PHY");
+                cli_printf("Error: mepa_conf_set failed on port %u (rc %d): "
+                           "port is NOT configured; see the mesa-demo trace "
+                           "log for the driver reason\n",
+                           iport2uport(req->port_no), rc);
+            } else {
+                cli_printf("conf applied on port %u\n", iport2uport(req->port_no));
             }
         file_close:
             free(buffer);
