@@ -949,7 +949,7 @@ static int write_block(int fd, const char *b, size_t s)
     int c = 0, res = 0;
 
     while (s) {
-        res = write(fd, b, s);
+        res = send(fd, b, s, MSG_NOSIGNAL);
         if (res < 0) {
             return -1;
 
