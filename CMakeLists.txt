@@ -238,3 +238,94 @@ if (MESA_ALL_TARGETS)
     mesa_export_targets_recursive("${CMAKE_CURRENT_BINARY_DIR}/cmake_target_db_full.txt" ${MESA_ALL_TARGETS})
 endif()
 
+################################################################################
+# Install rules -- keep the sysroot self-contained so downstream applications
+# that link with libmepa (and mesa-cmd) can find headers, the common driver
+# source drop, and the merged library + family plugins.
+################################################################################
+
+include(GNUInstallDirs)
+
+# Public API headers -- include_common/ is the unified copy of every public
+# header from mepa/, mesa/, meba/, mepa/vtss/, me/, produced by the mesa-ag
+# processing above.
+install(
+    DIRECTORY ${CMAKE_BINARY_DIR}/include_common/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mepa
+    FILES_MATCHING PATTERN "*.h"
+)
+
+# Family plugin headers -- mepa/microchip/<family>/include/microchip/*.h are
+# NOT swept into include_common/ by the mesa-ag processing (that pass only
+# covers mepa/include/**.h). Install them directly so consumers can
+# #include <microchip/lan80xx_ts.h> etc.
+foreach(_fam_hdr_dir IN ITEMS
+        mepa/microchip/lan80xx/include
+        mepa/microchip/lan8814/include)
+    if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${_fam_hdr_dir})
+        install(
+            DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${_fam_hdr_dir}/
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mepa
+            FILES_MATCHING PATTERN "*.h"
+        )
+    endif()
+endforeach()
+
+if(lm_utils_SOURCE_DIR)
+    install(
+        DIRECTORY ${lm_utils_SOURCE_DIR}/include/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mepa
+        FILES_MATCHING PATTERN "*.h"
+    )
+endif()
+
+# Common driver source drop -- downstream users compile these against
+# libmepa (mepa_ts_driver.h, mepa_driver.h, mepa_os.h, phy.c ...).
+install(
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/mepa/common/
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/mepa/common
+    FILES_MATCHING
+        PATTERN "*.h"
+        PATTERN "*.c"
+)
+
+# Merged libmepa (bundled via ar -Ms in MEPA_LIB) -- installed by artefact
+# path since it is a CMake IMPORTED target and cannot be install(TARGETS)ed.
+install(FILES ${CMAKE_BINARY_DIR}/mepa/libmepa.a
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/mepa
+        OPTIONAL)
+
+# Family driver static libraries. install(TARGETS) picks up the produced .a
+# by target reference, unlike install(DIRECTORY ... FILES_MATCHING ...) which
+# silently skips build-produced files on a first-ever build. Enumerate all
+# known MEPA_DRV() targets under an if(TARGET) guard so disabled families
+# don't fail configure.
+foreach(_drv IN ITEMS
+        mepa_drv_lan80xx_ts
+        mepa_drv_lan80xx_ts_msec
+        mepa_drv_lan8770
+        mepa_drv_lan8814
+        mepa_drv_lan8814_light
+        mepa_drv_lan884x
+        mepa_drv_lan867x
+        mepa_drv_lan8x8x
+        mepa_drv_lan887x
+        mepa_drv_aqr
+        mepa_drv_intel
+        mepa_drv_ksz9031
+        mepa_drv_vtss
+        mepa_drv_vtss_10g_only
+        mepa_drv_vtss_ts
+        mepa_drv_vtss_10g_ts
+        mepa_drv_vtss_10g_macsec_ts
+        mepa_drv_vtss_custom
+        mepa_drv_dummy_phy)
+    # MEPA_DRV() creates the target regardless of BUILD_<drv>, only setting
+    # EXCLUDE_FROM_ALL — install(TARGETS) on an excluded target errors at
+    # install-time (no .a produced). Gate on the BUILD option instead of
+    # if(TARGET).
+    if(BUILD_${_drv})
+        install(TARGETS ${_drv}
+                ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/mepa)
+    endif()
+endforeach()

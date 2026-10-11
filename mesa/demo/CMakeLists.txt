@@ -370,3 +370,21 @@ elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
 
 endif()
 
+# Install rules -- ship the CLI (renamed to mesa-cmd via OUTPUT_NAME) so it
+# can drive the LAN80xx PHY through lan80xx-spid; skip the rest of the
+# executables (mesa-demo, base64decode, spi_reg_read, init, ...) since they
+# are not needed on a PHY-only target.
+include(GNUInstallDirs)
+install(
+    TARGETS cli
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+# The PHY-only mesa-demo variant (mesa-demo-void) is the daemon mesa-cmd
+# connects to via /var/run/cli_ipc.socket. Guarded on the app_void CMake
+# option so a non-PHY_ONLY build doesn't fail here.
+if(TARGET app_void)
+    install(
+        TARGETS app_void
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+endif()
